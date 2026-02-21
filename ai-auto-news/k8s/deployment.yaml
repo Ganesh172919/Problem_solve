@@ -1,0 +1,211 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-auto-news-web
+  namespace: ai-auto-news
+  labels:
+    app: ai-auto-news
+    component: web
+    tier: frontend
+spec:
+  replicas: 3
+  revisionHistoryLimit: 10
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: ai-auto-news
+      component: web
+  template:
+    metadata:
+      labels:
+        app: ai-auto-news
+        component: web
+        tier: frontend
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/api/metrics"
+    spec:
+      serviceAccountName: ai-auto-news
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: web
+        image: ai-auto-news:latest
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 3000
+          protocol: TCP
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: ai-auto-news-secrets
+              key: database-url
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: ai-auto-news-secrets
+              key: redis-url
+        - name: STRIPE_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ai-auto-news-secrets
+              key: stripe-secret
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: ai-auto-news-secrets
+              key: jwt-secret
+        - name: GEMINI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ai-auto-news-secrets
+              key: gemini-api-key
+        - name: PERPLEXITY_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ai-auto-news-secrets
+              key: perplexity-api-key
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://otel-collector:4318"
+        - name: OTEL_SERVICE_NAME
+          value: "ai-auto-news-web"
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: cache
+          mountPath: /app/.next/cache
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: cache
+        emptyDir: {}
+      - name: tmp
+        emptyDir: {}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - ai-auto-news
+                - key: component
+                  operator: In
+                  values:
+                  - web
+              topologyKey: kubernetes.io/hostname
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-auto-news-worker
+  namespace: ai-auto-news
+  labels:
+    app: ai-auto-news
+    component: worker
+    tier: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ai-auto-news
+      component: worker
+  template:
+    metadata:
+      labels:
+        app: ai-auto-news
+        component: worker
+        tier: backend
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+    spec:
+      serviceAccountName: ai-auto-news
+      containers:
+      - name: worker
+        image: ai-auto-news:latest
+        command: ["node", "dist/workers/main.js"]
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: WORKER_MODE
+          value: "true"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: ai-auto-news-secrets
+              key: database-url
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: ai-auto-news-secrets
+              key: redis-url
+        - name: OTEL_SERVICE_NAME
+          value: "ai-auto-news-worker"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-auto-news-web
+  namespace: ai-auto-news
+  labels:
+    app: ai-auto-news
+    component: web
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    app: ai-auto-news
+    component: web
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ai-auto-news
+  namespace: ai-auto-news
