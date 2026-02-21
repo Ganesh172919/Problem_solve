@@ -27,6 +27,12 @@ export default function Header() {
             <Link href="/category/news" className="text-gray-600 hover:text-gray-900 transition-colors">
               News
             </Link>
+            <Link href="/pricing" className="text-gray-600 hover:text-gray-900 transition-colors">
+              Pricing
+            </Link>
+            <Link href="/dashboard" className="text-gray-600 hover:text-gray-900 transition-colors">
+              Dashboard
+            </Link>
             <Link href="/about" className="text-gray-600 hover:text-gray-900 transition-colors">
               About
             </Link>
@@ -60,6 +66,8 @@ export default function Header() {
             <Link href="/" className="block px-3 py-2 text-gray-600 hover:text-gray-900">Home</Link>
             <Link href="/category/blog" className="block px-3 py-2 text-gray-600 hover:text-gray-900">Blog</Link>
             <Link href="/category/news" className="block px-3 py-2 text-gray-600 hover:text-gray-900">News</Link>
+            <Link href="/pricing" className="block px-3 py-2 text-gray-600 hover:text-gray-900">Pricing</Link>
+            <Link href="/dashboard" className="block px-3 py-2 text-gray-600 hover:text-gray-900">Dashboard</Link>
             <Link href="/about" className="block px-3 py-2 text-gray-600 hover:text-gray-900">About</Link>
             <Link href="/admin" className="block px-3 py-2 text-gray-600 hover:text-gray-900">Admin</Link>
           </div>

@@ -38,6 +38,135 @@ export function getDb(): Database.Database {
     CREATE INDEX IF NOT EXISTS idx_posts_slug ON posts(slug);
     CREATE INDEX IF NOT EXISTS idx_posts_createdAt ON posts(createdAt);
     CREATE INDEX IF NOT EXISTS idx_posts_category ON posts(category);
+
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      username TEXT UNIQUE NOT NULL,
+      passwordHash TEXT NOT NULL,
+      tier TEXT NOT NULL DEFAULT 'free',
+      apiCallsTotal INTEGER NOT NULL DEFAULT 0,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL,
+      lastActiveAt TEXT,
+      isActive INTEGER NOT NULL DEFAULT 1,
+      isVerified INTEGER NOT NULL DEFAULT 0
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+    CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+    CREATE INDEX IF NOT EXISTS idx_users_tier ON users(tier);
+
+    CREATE TABLE IF NOT EXISTS subscriptions (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      tier TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active',
+      currentPeriodStart TEXT NOT NULL,
+      currentPeriodEnd TEXT NOT NULL,
+      cancelAtPeriodEnd INTEGER NOT NULL DEFAULT 0,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_subscriptions_userId ON subscriptions(userId);
+    CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status);
+
+    CREATE TABLE IF NOT EXISTS api_keys (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      keyHash TEXT UNIQUE NOT NULL,
+      keyPrefix TEXT NOT NULL,
+      scopes TEXT NOT NULL DEFAULT '["read"]',
+      callCount INTEGER NOT NULL DEFAULT 0,
+      lastUsedAt TEXT,
+      expiresAt TEXT,
+      isActive INTEGER NOT NULL DEFAULT 1,
+      createdAt TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_api_keys_userId ON api_keys(userId);
+    CREATE INDEX IF NOT EXISTS idx_api_keys_keyHash ON api_keys(keyHash);
+
+    CREATE TABLE IF NOT EXISTS usage_events (
+      id TEXT PRIMARY KEY,
+      userId TEXT,
+      apiKeyId TEXT,
+      endpoint TEXT NOT NULL,
+      method TEXT NOT NULL,
+      statusCode INTEGER NOT NULL,
+      durationMs INTEGER NOT NULL,
+      tokensUsed INTEGER NOT NULL DEFAULT 0,
+      tier TEXT NOT NULL DEFAULT 'public',
+      ipAddress TEXT NOT NULL DEFAULT '',
+      createdAt TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_usage_userId ON usage_events(userId);
+    CREATE INDEX IF NOT EXISTS idx_usage_createdAt ON usage_events(createdAt);
+    CREATE INDEX IF NOT EXISTS idx_usage_endpoint ON usage_events(endpoint);
+
+    CREATE TABLE IF NOT EXISTS feature_flags (
+      id TEXT PRIMARY KEY,
+      name TEXT UNIQUE NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      enabledTiers TEXT NOT NULL DEFAULT '["free","pro","enterprise"]',
+      isGlobal INTEGER NOT NULL DEFAULT 0,
+      rolloutPercent INTEGER NOT NULL DEFAULT 100,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_flags_name ON feature_flags(name);
+
+    CREATE TABLE IF NOT EXISTS analytics_events (
+      id TEXT PRIMARY KEY,
+      userId TEXT,
+      sessionId TEXT,
+      eventName TEXT NOT NULL,
+      properties TEXT NOT NULL DEFAULT '{}',
+      ipAddress TEXT,
+      userAgent TEXT,
+      createdAt TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_analytics_eventName ON analytics_events(eventName);
+    CREATE INDEX IF NOT EXISTS idx_analytics_userId ON analytics_events(userId);
+    CREATE INDEX IF NOT EXISTS idx_analytics_createdAt ON analytics_events(createdAt);
+
+    CREATE TABLE IF NOT EXISTS webhooks (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      url TEXT NOT NULL,
+      events TEXT NOT NULL DEFAULT '[]',
+      secret TEXT NOT NULL,
+      isActive INTEGER NOT NULL DEFAULT 1,
+      deliveryCount INTEGER NOT NULL DEFAULT 0,
+      failureCount INTEGER NOT NULL DEFAULT 0,
+      lastDeliveredAt TEXT,
+      createdAt TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_webhooks_userId ON webhooks(userId);
+    CREATE INDEX IF NOT EXISTS idx_webhooks_isActive ON webhooks(isActive);
+
+    CREATE TABLE IF NOT EXISTS tasks (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      payload TEXT NOT NULL DEFAULT '{}',
+      status TEXT NOT NULL DEFAULT 'pending',
+      attempts INTEGER NOT NULL DEFAULT 0,
+      maxAttempts INTEGER NOT NULL DEFAULT 3,
+      error TEXT,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL,
+      scheduledAt TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+    CREATE INDEX IF NOT EXISTS idx_tasks_scheduledAt ON tasks(scheduledAt);
+    CREATE INDEX IF NOT EXISTS idx_tasks_type ON tasks(type);
   `);
 
   return db;
