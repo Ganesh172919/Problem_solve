@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ai-auto-news-config
+  namespace: ai-auto-news
+data:
+  NODE_ENV: "production"
+  LOG_LEVEL: "info"
+  METRICS_ENABLED: "true"
+  TRACING_ENABLED: "true"
+  CACHE_TTL: "3600"
+  RATE_LIMIT_WINDOW: "900"
+  MAX_WORKERS: "4"
+  QUEUE_CONCURRENCY: "10"
+  SESSION_TIMEOUT: "86400"
+  API_VERSION: "v1"
+  FEATURE_FLAGS_ENABLED: "true"
+  ANALYTICS_ENABLED: "true"
+
+  # Database configuration
+  DB_POOL_MIN: "10"
+  DB_POOL_MAX: "30"
+  DB_IDLE_TIMEOUT: "30000"
+  DB_CONNECTION_TIMEOUT: "5000"
+
+  # Redis configuration
+  REDIS_POOL_MIN: "5"
+  REDIS_POOL_MAX: "20"
+  REDIS_CONNECT_TIMEOUT: "5000"
+
+  # AI Agent configuration
+  AGENT_TIMEOUT: "120000"
+  AGENT_MAX_RETRIES: "3"
+  AGENT_BACKOFF_MULTIPLIER: "2"
+
+  # Rate limiting
+  RATE_LIMIT_FREE: "100"
+  RATE_LIMIT_PRO: "10000"
+  RATE_LIMIT_ENTERPRISE: "1000000"
+
+  # Monitoring
+  PROMETHEUS_PORT: "9090"
+  HEALTH_CHECK_INTERVAL: "30"
