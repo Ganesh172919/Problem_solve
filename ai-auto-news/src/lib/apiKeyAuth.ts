@@ -16,7 +16,7 @@ type ApiKeyAuthSuccess = {
   user: User;
 };
 
-export type ApiKeyAuthResult = ApiKeyAuthFailure | ApiKeyAuthSuccess;;
+export type ApiKeyAuthResult = ApiKeyAuthFailure | ApiKeyAuthSuccess;
 
 export function extractBearerToken(request: NextRequest): string | null {
   const authHeader = request.headers.get('Authorization');

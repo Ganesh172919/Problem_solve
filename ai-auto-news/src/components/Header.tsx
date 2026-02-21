@@ -27,6 +27,13 @@ export default function Header() {
             <Link href="/category/news" className="text-gray-600 hover:text-gray-900 transition-colors">
               News
             </Link>
+            <Link href="/search" className="text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-1">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              Search
+            </Link>
             <Link href="/pricing" className="text-gray-600 hover:text-gray-900 transition-colors">
               Pricing
             </Link>
@@ -66,6 +73,7 @@ export default function Header() {
             <Link href="/" className="block px-3 py-2 text-gray-600 hover:text-gray-900">Home</Link>
             <Link href="/category/blog" className="block px-3 py-2 text-gray-600 hover:text-gray-900">Blog</Link>
             <Link href="/category/news" className="block px-3 py-2 text-gray-600 hover:text-gray-900">News</Link>
+            <Link href="/search" className="block px-3 py-2 text-gray-600 hover:text-gray-900">Search</Link>
             <Link href="/pricing" className="block px-3 py-2 text-gray-600 hover:text-gray-900">Pricing</Link>
             <Link href="/dashboard" className="block px-3 py-2 text-gray-600 hover:text-gray-900">Dashboard</Link>
             <Link href="/about" className="block px-3 py-2 text-gray-600 hover:text-gray-900">About</Link>

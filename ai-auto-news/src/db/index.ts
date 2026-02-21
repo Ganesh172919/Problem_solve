@@ -167,6 +167,48 @@ export function getDb(): Database.Database {
     CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
     CREATE INDEX IF NOT EXISTS idx_tasks_scheduledAt ON tasks(scheduledAt);
     CREATE INDEX IF NOT EXISTS idx_tasks_type ON tasks(type);
+
+    CREATE TABLE IF NOT EXISTS audit_log (
+      id TEXT PRIMARY KEY,
+      actorId TEXT,
+      actorType TEXT NOT NULL DEFAULT 'user',
+      action TEXT NOT NULL,
+      resourceType TEXT NOT NULL,
+      resourceId TEXT,
+      details TEXT NOT NULL DEFAULT '{}',
+      ipAddress TEXT,
+      userAgent TEXT,
+      createdAt TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_audit_actorId ON audit_log(actorId);
+    CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_log(action);
+    CREATE INDEX IF NOT EXISTS idx_audit_createdAt ON audit_log(createdAt);
+    CREATE INDEX IF NOT EXISTS idx_audit_resourceType ON audit_log(resourceType);
+
+    CREATE TABLE IF NOT EXISTS custom_topics (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      topic TEXT NOT NULL,
+      isActive INTEGER NOT NULL DEFAULT 1,
+      weight INTEGER NOT NULL DEFAULT 1,
+      lastUsedAt TEXT,
+      useCount INTEGER NOT NULL DEFAULT 0,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_custom_topics_userId ON custom_topics(userId);
+    CREATE INDEX IF NOT EXISTS idx_custom_topics_isActive ON custom_topics(isActive);
+
+    CREATE VIRTUAL TABLE IF NOT EXISTS posts_fts USING fts5(
+      id UNINDEXED,
+      title,
+      summary,
+      tags,
+      content=posts,
+      content_rowid=rowid
+    );
   `);
 
   return db;
