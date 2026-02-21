@@ -120,7 +120,7 @@ function generateFallbackNews(research: ResearchResult): NewsContent {
   const content = `
     <p><strong>${research.summary}</strong></p>
 
-    <h2>What&apos;s Happening</h2>
+    <h2>What&#39;s Happening</h2>
     <p>In a significant development for the tech industry, new advancements in ${research.topic} are making headlines. Industry observers note that these developments could have far-reaching implications for businesses and consumers.</p>
 
     <h2>Key Details</h2>
@@ -131,7 +131,7 @@ function generateFallbackNews(research: ResearchResult): NewsContent {
     <h2>Industry Reaction</h2>
     <p>Technology leaders and analysts are closely monitoring these developments. The consensus among experts is that ${research.topic} will continue to be a major area of focus for innovation and investment in the coming months.</p>
 
-    <h2>What&apos;s Next</h2>
+    <h2>What&#39;s Next</h2>
     <p>Analysts expect further announcements in the near future as companies race to capitalize on these developments. Stay tuned for updates as this story develops.</p>
   `.trim();
 

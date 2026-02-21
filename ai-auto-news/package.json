@@ -11,6 +11,7 @@
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.6.2",
+    "isomorphic-dompurify": "^2.36.0",
     "jsonwebtoken": "^9.0.3",
     "next": "16.1.6",
     "react": "19.2.3",

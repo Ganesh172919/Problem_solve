@@ -1,3 +1,5 @@
+import DOMPurify from 'isomorphic-dompurify';
+
 export function formattingAgent(content: string): string {
   let formatted = content;
 
@@ -15,13 +17,6 @@ export function formattingAgent(content: string): string {
   // Wrap consecutive <li> elements in <ul>
   formatted = formatted.replace(/(<li>.*?<\/li>\n?)+/g, (match) => `<ul>${match}</ul>`);
 
-  // Sanitize potentially unsafe tags
-  formatted = formatted.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-  formatted = formatted.replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '');
-  formatted = formatted.replace(/on\w+="[^"]*"/gi, '');
-  formatted = formatted.replace(/on\w+='[^']*'/gi, '');
-  formatted = formatted.replace(/javascript:/gi, '');
-
   // Ensure proper paragraph wrapping for loose text lines
   const lines = formatted.split('\n');
   const processedLines = lines.map((line) => {
@@ -32,6 +27,12 @@ export function formattingAgent(content: string): string {
   });
 
   formatted = processedLines.filter(Boolean).join('\n');
+
+  // Sanitize with DOMPurify to remove XSS vectors
+  formatted = DOMPurify.sanitize(formatted, {
+    ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'p', 'ul', 'ol', 'li', 'strong', 'em', 'a', 'br', 'blockquote', 'code', 'pre'],
+    ALLOWED_ATTR: ['href', 'target', 'rel'],
+  });
 
   return formatted;
 }
