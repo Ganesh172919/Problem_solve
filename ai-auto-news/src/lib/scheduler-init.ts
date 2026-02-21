@@ -1,4 +1,5 @@
 import { startScheduler } from '@/scheduler/autoPublisher';
+import { startTaskQueue } from '@/workers/taskQueue';
 
 const initKey = '__schedulerInitialized__';
 
@@ -11,4 +12,5 @@ export function initializeScheduler(): void {
 
   g[initKey] = true;
   startScheduler();
+  startTaskQueue();
 }
