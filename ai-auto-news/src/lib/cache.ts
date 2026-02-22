@@ -42,6 +42,10 @@ class InMemoryCache {
     this.store.delete(key);
   }
 
+  del(key: string): void {
+    this.store.delete(key);
+  }
+
   deleteByPrefix(prefix: string): void {
     for (const key of this.store.keys()) {
       if (key.startsWith(prefix)) {
@@ -87,3 +91,7 @@ function getGlobalCache(): InMemoryCache {
 }
 
 export const cache = getGlobalCache();
+
+export function getCache(): InMemoryCache {
+  return getGlobalCache();
+}
