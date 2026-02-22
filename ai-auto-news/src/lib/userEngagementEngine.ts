@@ -587,7 +587,7 @@ class UserEngagementEngine {
         type: 'dormancy',
         severity: 'medium',
         message: `We miss you! It's been ${score.daysSinceLastActivity} days since your last visit.`,
-        suggestedAction: 'Read today's top article',
+        suggestedAction: "Read today's top article",
         channel: 'email',
         scheduledFor: now,
         fired: false,
