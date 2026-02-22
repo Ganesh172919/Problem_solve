@@ -61,6 +61,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       engine.leaveSession(sessionId!, userId ?? 'anonymous');
       result = { success: true };
     } else if (action === 'operation') {
+      if (!operation?.type || operation.position === undefined || !operation.userId || operation.revision === undefined) {
+        return NextResponse.json(
+          { error: 'operation must include type, position, userId, and revision' },
+          { status: 400 }
+        );
+      }
       result = engine.applyOperation({ ...operation, sessionId: sessionId! });
     } else if (action === 'comment') {
       result = engine.addComment(sessionId!, userId ?? 'anonymous', comment?.text ?? '', comment?.position ?? 0);

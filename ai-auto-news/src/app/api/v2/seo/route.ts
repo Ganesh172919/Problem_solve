@@ -12,6 +12,13 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const contentId = searchParams.get('contentId');
     const url = searchParams.get('url');
 
+    if (!contentId && !url) {
+      return NextResponse.json(
+        { error: 'At least one of contentId or url is required' },
+        { status: 400 }
+      );
+    }
+
     const cacheKey = `seo:${contentId ?? ''}:${url ?? ''}`;
     const cached = cache.get(cacheKey);
     if (cached) {

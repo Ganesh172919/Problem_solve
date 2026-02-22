@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getLogger } from '../../../../lib/logger';
 import { getCache } from '../../../../lib/cache';
-import getContentSyndicationEngine from '../../../../lib/contentSyndicationEngine';
+import getContentSyndicationEngine, { type SyndicationPartner } from '../../../../lib/contentSyndicationEngine';
 
 const logger = getLogger();
 const cache = getCache();
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     const engine = getContentSyndicationEngine();
-    const ids = partnerIds ?? engine.getPartners().map((p: any) => p.id);
+    const ids = partnerIds ?? engine.getPartners().map((p: SyndicationPartner) => p.id);
     const result = await engine.syndicateContent(contentId, ids, 'json');
 
     return NextResponse.json(result, { status: 202 });

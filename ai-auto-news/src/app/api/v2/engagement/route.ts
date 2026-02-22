@@ -48,7 +48,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const VALID_EVENT_TYPES = ['view', 'click', 'share', 'comment', 'purchase'];
+    const VALID_EVENT_TYPES = ['login', 'article_read', 'article_share', 'comment', 'like', 'bookmark', 'purchase', 'review_written', 'view', 'click', 'share'];
     for (const event of events) {
       if (!event.type || !VALID_EVENT_TYPES.includes(event.type)) {
         return NextResponse.json(

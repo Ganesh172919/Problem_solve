@@ -33,7 +33,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const body = await req.json();
-    const { action, planId, targetRevenue, floorPrice, ceilingPrice, variant } = body;
+    const { action, planId, targetRevenue, floorPrice, ceilingPrice, variant, demandSignal } = body;
 
     const VALID_ACTIONS = ['optimize', 'experiment', 'adjust'];
     if (!action || !VALID_ACTIONS.includes(action)) {
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     } else if (action === 'experiment') {
       result = engine.createPricingExperiment(planId, `experiment-${Date.now()}`, variant ?? floorPrice ?? 0);
     } else if (action === 'adjust') {
-      result = engine.adjustPriceRealtime(planId, 1.0);
+      result = engine.adjustPriceRealtime(planId, demandSignal ?? 1.0);
     }
 
     return NextResponse.json(result, { status: 200 });
