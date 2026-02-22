@@ -114,4 +114,5 @@ function getLogger(): Logger {
   return g[GLOBAL_LOGGER_KEY];
 }
 
+export { getLogger };
 export const logger = getLogger();
