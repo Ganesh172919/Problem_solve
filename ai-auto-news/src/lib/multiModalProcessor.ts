@@ -512,10 +512,10 @@ export class MultiModalProcessor {
         tagBuf += ch;
         if (ch === '>') {
           const lower = tagBuf.toLowerCase();
-          if (lower.startsWith('script')) inScript = true;
-          else if (lower.startsWith('/script')) inScript = false;
-          else if (lower.startsWith('style')) inStyle = true;
-          else if (lower.startsWith('/style')) inStyle = false;
+          if (lower === 'script' || lower.startsWith('script ') || lower.startsWith('script/')) inScript = true;
+          else if (lower === '/script') inScript = false;
+          else if (lower === 'style' || lower.startsWith('style ') || lower.startsWith('style/')) inStyle = true;
+          else if (lower === '/style') inStyle = false;
           else if (lower === 'br' || lower.startsWith('br ') || lower === 'br/') result += '\n';
           inTag = false;
           tagBuf = '';

@@ -698,7 +698,7 @@ class MarketplaceOrchestrator {
     if (result.status === 'failed') {
       if (listing.status === 'published') {
         listing.status = 'suspended';
-        logger.error('Listing suspended due to failed security scan', undefined, { listingId, issues: result.issues.length });
+        logger.error('Listing suspended due to failed security scan', { listingId, issues: result.issues.length });
       }
     } else if (result.status === 'passed') {
       result.lastPassedAt = new Date();
