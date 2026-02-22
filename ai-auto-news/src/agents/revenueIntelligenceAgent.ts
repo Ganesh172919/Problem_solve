@@ -14,8 +14,8 @@
  * - Revenue leakage detection
  */
 
-import { getLogger } from './logger';
-import { getCache } from './cache';
+import { getLogger } from '../lib/logger';
+import { getCache } from '../lib/cache';
 
 const logger = getLogger();
 

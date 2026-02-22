@@ -237,7 +237,7 @@ async function fetchExportData(
         email: `user${i + 1}@example.com`,
         name: `User ${i + 1}`,
         tier: ['free', 'pro', 'enterprise'][i % 3],
-        createdAt: new Date(now.getTime() - i * 86400000* 10),
+        createdAt: new Date(now.getTime() - i * 86400000 * 10),
         lastLoginAt: new Date(now.getTime() - i * 3600000),
         postCount: Math.floor(Math.random() * 50),
         country: ['US', 'UK', 'DE', 'IN', 'CA'][i % 5],
