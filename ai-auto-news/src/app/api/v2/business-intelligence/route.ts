@@ -30,15 +30,23 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     }
 
     const cacheKey = `bi:${report ?? 'dashboard'}:${period ?? 'default'}`;
-    const cached = await cache.get(cacheKey);
+    const cached = cache.get(cacheKey);
     if (cached) {
       return NextResponse.json(cached, { status: 200 });
     }
 
-    const engine = await getBusinessIntelligenceEngine();
-    const data = await engine.getDashboard({ report, period });
+    const engine = getBusinessIntelligenceEngine();
+    let data;
+    if (report === 'board') {
+      const now = new Date();
+      const quarter = (Math.floor(now.getMonth() / 3) + 1) as 1 | 2 | 3 | 4;
+      data = await engine.getBoardMetrics(now.getFullYear(), quarter);
+    } else {
+      const periodDays = period === 'YoY' ? 365 : period === 'QoQ' ? 90 : 30;
+      data = await engine.getExecutiveDashboard(periodDays);
+    }
 
-    await cache.set(cacheKey, data, 600);
+    cache.set(cacheKey, data, 600);
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
     logger.error('Business Intelligence GET error', { error });
@@ -58,14 +66,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const engine = await getBusinessIntelligenceEngine();
-    const result = await engine.buildCustomReport({
-      reportName,
+    const engine = getBusinessIntelligenceEngine();
+    const now = new Date();
+    const definition = {
+      id: `custom-${Date.now()}`,
+      name: reportName,
       metrics,
-      filters,
-      groupBy,
-      compareWith,
-    });
+      filters: filters ?? [],
+      groupBy: groupBy ? [groupBy] : [],
+      dateRange: { start: new Date(now.getTime() - 30 * 86400000), end: now },
+      createdBy: 'api',
+      createdAt: now,
+    };
+    const result = await engine.buildReport(definition);
 
     return NextResponse.json(result, { status: 200 });
   } catch (error) {

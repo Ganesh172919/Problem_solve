@@ -12,17 +12,21 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const partnerId = searchParams.get('partnerId');
 
     const cacheKey = `syndication:partners:${partnerId ?? 'all'}`;
-    const cached = await cache.get(cacheKey);
+    const cached = cache.get(cacheKey);
     if (cached) {
       return NextResponse.json(cached, { status: 200 });
     }
 
-    const engine = await getContentSyndicationEngine();
-    const data = partnerId
-      ? await engine.getPartner(partnerId)
-      : await engine.listPartners();
+    const engine = getContentSyndicationEngine();
+    let data;
+    if (partnerId) {
+      const status = engine.getPartnerStatus(partnerId);
+      data = status ?? { error: 'Partner not found' };
+    } else {
+      data = engine.getPartners();
+    }
 
-    await cache.set(cacheKey, data, 60);
+    cache.set(cacheKey, data, 60);
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
     logger.error('Syndication GET error', { error });
@@ -42,14 +46,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const engine = await getContentSyndicationEngine();
-    const result = await engine.syndicate({
-      contentId,
-      title,
-      content,
-      partnerIds,
-      scheduleAt,
-    });
+    const engine = getContentSyndicationEngine();
+    const ids = partnerIds ?? engine.getPartners().map((p: any) => p.id);
+    const result = await engine.syndicateContent(contentId, ids, 'json');
 
     return NextResponse.json(result, { status: 202 });
   } catch (error) {

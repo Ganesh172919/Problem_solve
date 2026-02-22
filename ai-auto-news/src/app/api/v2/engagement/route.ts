@@ -16,15 +16,15 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     }
 
     const cacheKey = `engagement:${userId}`;
-    const cached = await cache.get(cacheKey);
+    const cached = cache.get(cacheKey);
     if (cached) {
       return NextResponse.json(cached, { status: 200 });
     }
 
-    const engine = await getUserEngagementEngine();
-    const data = await engine.getUserEngagement(userId);
+    const engine = getUserEngagementEngine();
+    const data = engine.getUserEngagementSummary(userId);
 
-    await cache.set(cacheKey, data, 60);
+    cache.set(cacheKey, data, 60);
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
     logger.error('Engagement GET error', { error });
@@ -58,8 +58,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       }
     }
 
-    const engine = await getUserEngagementEngine();
-    const result = await engine.processEvents({ userId, events });
+    const engine = getUserEngagementEngine();
+    for (const event of events) {
+      engine.recordAction(userId, event.type, event.value);
+    }
+    const result = engine.getUserEngagementSummary(userId);
 
     return NextResponse.json(result, { status: 200 });
   } catch (error) {

@@ -12,17 +12,17 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const planId = searchParams.get('planId');
 
     const cacheKey = `pricing:${planId ?? 'all'}`;
-    const cached = await cache.get(cacheKey);
+    const cached = cache.get(cacheKey);
     if (cached) {
       return NextResponse.json(cached, { status: 200 });
     }
 
-    const engine = await getIntelligentPricingEngine();
+    const engine = getIntelligentPricingEngine();
     const data = planId
-      ? await engine.getPlanOptimization(planId)
-      : await engine.getPricingOverview();
+      ? engine.getPricingRecommendations(planId)
+      : engine.listExperiments();
 
-    await cache.set(cacheKey, data, 120);
+    cache.set(cacheKey, data, 120);
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
     logger.error('Pricing GET error', { error });
@@ -47,15 +47,15 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'planId is required' }, { status: 400 });
     }
 
-    const engine = await getIntelligentPricingEngine();
-    const result = await engine.applyPricingRule({
-      action,
-      planId,
-      targetRevenue,
-      floorPrice,
-      ceilingPrice,
-      variant,
-    });
+    const engine = getIntelligentPricingEngine();
+    let result: unknown;
+    if (action === 'optimize') {
+      result = { optimalPrice: engine.calculateOptimalPrice(planId) };
+    } else if (action === 'experiment') {
+      result = engine.createPricingExperiment(planId, `experiment-${Date.now()}`, variant ?? floorPrice ?? 0);
+    } else if (action === 'adjust') {
+      result = engine.adjustPriceRealtime(planId, 1.0);
+    }
 
     return NextResponse.json(result, { status: 200 });
   } catch (error) {

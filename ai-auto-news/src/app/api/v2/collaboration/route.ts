@@ -12,17 +12,17 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const sessionId = searchParams.get('sessionId');
 
     const cacheKey = `collaboration:${sessionId ?? 'all'}`;
-    const cached = await cache.get(cacheKey);
+    const cached = cache.get(cacheKey);
     if (cached) {
       return NextResponse.json(cached, { status: 200 });
     }
 
-    const engine = await getRealtimeCollaborationEngine();
+    const engine = getRealtimeCollaborationEngine();
     const data = sessionId
-      ? await engine.getSession(sessionId)
-      : await engine.listActiveSessions();
+      ? engine.getSession(sessionId)
+      : engine.listSessions();
 
-    await cache.set(cacheKey, data, 15);
+    cache.set(cacheKey, data, 15);
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
     logger.error('Collaboration GET error', { error });
@@ -51,15 +51,20 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'sessionId is required for this action' }, { status: 400 });
     }
 
-    const engine = await getRealtimeCollaborationEngine();
-    const result = await engine.handleAction({
-      action,
-      sessionId,
-      contentId,
-      userId,
-      operation,
-      comment,
-    });
+    const engine = getRealtimeCollaborationEngine();
+    let result: unknown;
+    if (action === 'create') {
+      result = engine.createSession(contentId!, `session-${Date.now()}`, userId ?? 'anonymous');
+    } else if (action === 'join') {
+      result = engine.joinSession(sessionId!, { id: userId ?? 'anonymous', name: userId ?? 'anonymous', role: 'editor' });
+    } else if (action === 'leave') {
+      engine.leaveSession(sessionId!, userId ?? 'anonymous');
+      result = { success: true };
+    } else if (action === 'operation') {
+      result = engine.applyOperation({ ...operation, sessionId: sessionId! });
+    } else if (action === 'comment') {
+      result = engine.addComment(sessionId!, userId ?? 'anonymous', comment?.text ?? '', comment?.position ?? 0);
+    }
 
     return NextResponse.json(result, { status: 200 });
   } catch (error) {

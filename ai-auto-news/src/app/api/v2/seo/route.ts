@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getLogger } from '../../../../lib/logger';
 import { getCache } from '../../../../lib/cache';
-import getAiPoweredSEO from '../../../../lib/aiPoweredSEO';
+import getAIPoweredSEO from '../../../../lib/aiPoweredSEO';
 
 const logger = getLogger();
 const cache = getCache();
@@ -13,15 +13,25 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const url = searchParams.get('url');
 
     const cacheKey = `seo:${contentId ?? ''}:${url ?? ''}`;
-    const cached = await cache.get(cacheKey);
+    const cached = cache.get(cacheKey);
     if (cached) {
       return NextResponse.json(cached, { status: 200 });
     }
 
-    const seo = await getAiPoweredSEO();
-    const analysis = await seo.analyze({ contentId, url });
+    const seo = getAIPoweredSEO();
+    const doc = {
+      id: contentId ?? url ?? '',
+      url: url ?? '',
+      title: '',
+      description: '',
+      body: '',
+      headings: [],
+      tags: [],
+      publishedAt: new Date(),
+    };
+    const analysis = seo.analyzeContent(doc);
 
-    await cache.set(cacheKey, analysis, 300);
+    cache.set(cacheKey, analysis, 300);
     return NextResponse.json(analysis, { status: 200 });
   } catch (error) {
     logger.error('SEO GET error', { error });
@@ -41,15 +51,18 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const seo = await getAiPoweredSEO();
-    const result = await seo.analyzeAndOptimize({
-      contentId,
+    const seo = getAIPoweredSEO();
+    const doc = {
+      id: contentId,
+      url,
       title,
       description,
       body: content,
-      url,
-      competitors,
-    });
+      headings: [],
+      tags: competitors ?? [],
+      publishedAt: new Date(),
+    };
+    const result = seo.analyzeContent(doc);
 
     return NextResponse.json(result, { status: 200 });
   } catch (error) {

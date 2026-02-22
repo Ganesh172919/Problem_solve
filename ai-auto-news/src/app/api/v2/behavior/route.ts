@@ -14,15 +14,19 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const segment = searchParams.get('segment');
 
     const cacheKey = `behavior:${userId ?? ''}:${sessionId ?? ''}:${segment ?? ''}`;
-    const cached = await cache.get(cacheKey);
+    const cached = cache.get(cacheKey);
     if (cached) {
       return NextResponse.json(cached, { status: 200 });
     }
 
-    const analytics = await getUserBehaviorAnalytics();
-    const data = await analytics.getAnalytics({ userId, sessionId, segment });
+    const analytics = getUserBehaviorAnalytics();
+    const data: Record<string, unknown> = {};
+    if (userId) data.persona = analytics.detectPersona(userId);
+    if (segment) data.segments = analytics.segmentUsers().filter((s: any) => s.name === segment);
+    if (!userId && !segment) data.segments = analytics.segmentUsers();
+    if (sessionId) data.session = analytics.getSession(sessionId);
 
-    await cache.set(cacheKey, data, 60);
+    cache.set(cacheKey, data, 60);
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
     logger.error('Behavior GET error', { error });
@@ -49,10 +53,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const analytics = await getUserBehaviorAnalytics();
-    const result = await analytics.trackEvents({ userId, sessionId, events });
+    const analytics = getUserBehaviorAnalytics();
+    const tracked = events.map((event: any) =>
+      analytics.trackEvent({ ...event, userId, sessionId })
+    );
 
-    return NextResponse.json(result, { status: 202 });
+    return NextResponse.json(tracked, { status: 202 });
   } catch (error) {
     logger.error('Behavior POST error', { error });
     return NextResponse.json({ error: 'Failed to track behavior events' }, { status: 500 });
