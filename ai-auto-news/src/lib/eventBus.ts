@@ -47,13 +47,14 @@ type UnsubscribeFn = () => void;
 
 let handlerCounter = 0;
 let eventCounter = 0;
+const instanceId = Math.random().toString(36).slice(2, 8);
 
 function generateHandlerId(): string {
-  return `handler_${Date.now()}_${++handlerCounter}`;
+  return `handler_${instanceId}_${Date.now()}_${++handlerCounter}`;
 }
 
 function generateEventId(): string {
-  return `evt_${Date.now()}_${++eventCounter}`;
+  return `evt_${instanceId}_${Date.now()}_${++eventCounter}`;
 }
 
 function matchesWildcard(pattern: string, topic: string): boolean {

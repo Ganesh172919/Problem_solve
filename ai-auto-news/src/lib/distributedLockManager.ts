@@ -366,7 +366,11 @@ export class LockManager {
   }
 
   private generateOwnerId(): string {
-    return `owner_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+    try {
+      return `owner_${crypto.randomUUID()}`;
+    } catch {
+      return `owner_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+    }
   }
 }
 

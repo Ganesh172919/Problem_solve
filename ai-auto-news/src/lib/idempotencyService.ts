@@ -19,6 +19,7 @@ interface IdempotencyMetrics {
   duplicatesDetected: number;
   keysStored: number;
   keysExpired: number;
+  keysEvicted: number;
   pendingKeys: number;
   completedKeys: number;
   failedKeys: number;
@@ -78,6 +79,7 @@ export class IdempotencyService {
     duplicatesDetected: 0,
     keysStored: 0,
     keysExpired: 0,
+    keysEvicted: 0,
     pendingKeys: 0,
     completedKeys: 0,
     failedKeys: 0,
@@ -325,6 +327,7 @@ export class IdempotencyService {
       duplicatesDetected: 0,
       keysStored: 0,
       keysExpired: 0,
+      keysEvicted: 0,
       pendingKeys: 0,
       completedKeys: 0,
       failedKeys: 0,
@@ -368,7 +371,7 @@ export class IdempotencyService {
       evicted++;
     }
 
-    this.metrics.keysExpired += evicted;
+    this.metrics.keysEvicted += evicted;
     this.updateStatusMetrics();
     logger.warn('IdempotencyService: evicted oldest entries due to capacity', {
       evicted,

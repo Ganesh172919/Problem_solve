@@ -58,9 +58,10 @@ const DEFAULT_POOL_CONFIG: PoolConfig = {
 };
 
 let poolConnectionCounter = 0;
+const poolInstanceId = Math.random().toString(36).slice(2, 8);
 
 function generateConnectionId(poolName: string): string {
-  return `${poolName}_conn_${++poolConnectionCounter}`;
+  return `${poolName}_conn_${poolInstanceId}_${++poolConnectionCounter}`;
 }
 
 // ─── ConnectionPool ───────────────────────────────────────────────────────────

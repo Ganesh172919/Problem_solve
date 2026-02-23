@@ -17,6 +17,13 @@ interface DrainableConnection {
   registeredAt: number;
 }
 
+class HookTimeoutError extends Error {
+  constructor(hookName: string, timeoutMs: number) {
+    super(`Hook "${hookName}" timed out after ${timeoutMs}ms`);
+    this.name = 'HookTimeoutError';
+  }
+}
+
 interface ShutdownMetrics {
   hooksRegistered: number;
   hooksExecuted: number;
@@ -265,7 +272,7 @@ export class ShutdownCoordinator {
       } catch (err: unknown) {
         const error = err instanceof Error ? err : new Error(String(err));
 
-        if (error.message === 'HOOK_TIMEOUT') {
+        if (error instanceof HookTimeoutError) {
           this.metrics.hooksTimedOut++;
           logger.error('ShutdownCoordinator: hook timed out', undefined, {
             name: hook.name,
@@ -282,7 +289,7 @@ export class ShutdownCoordinator {
   private executeHookWithTimeout(hook: ShutdownHook): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => {
-        reject(new Error('HOOK_TIMEOUT'));
+        reject(new HookTimeoutError(hook.name, hook.timeoutMs));
       }, hook.timeoutMs);
 
       if (typeof timer === 'object' && 'unref' in timer) {
