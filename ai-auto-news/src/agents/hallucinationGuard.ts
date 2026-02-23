@@ -547,9 +547,11 @@ export class HallucinationGuard {
       }
     }
 
-    // Impossible dates
-    const years = text.match(/\b(20[3-9]\d|2[1-9]\d{2}|[3-9]\d{3})\b/g);
-    if (years && /\b(happened|occurred|was|were|did)\b/.test(text)) return true;
+    // Impossible dates: future years described with past-tense verbs
+    const currentYear = new Date().getFullYear();
+    const yearsInText = text.match(/\b(1\d{3}|2\d{3}|[3-9]\d{3})\b/g)?.map(Number) ?? [];
+    const hasFutureYear = yearsInText.some(y => y > currentYear + 10);
+    if (hasFutureYear && /\b(happened|occurred|was|were|did)\b/.test(text)) return true;
 
     return false;
   }
