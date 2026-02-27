@@ -29,8 +29,8 @@ export async function GET(request: NextRequest) {
 
         logger.info('Customer journey retrieved', {
           userId,
-          journeyId: journey.journeyId,
-          touchpoints: journey.touchpoints.length,
+          journeyId: journey.id,
+          touchpoints: journey.touchPoints.length,
           includeInsights,
         });
 
@@ -111,11 +111,11 @@ export async function POST(request: NextRequest) {
         mapper.trackTouchpoint(userId, touchpoint);
         logger.info('Touchpoint tracked', {
           userId,
-          touchpointId: touchpoint.touchpointId,
+          touchpointId: touchpoint.id,
           channel: touchpoint.channel,
-          event: touchpoint.event,
+          action: touchpoint.action,
         });
-        return NextResponse.json({ success: true, data: { userId, touchpointId: touchpoint.touchpointId } });
+        return NextResponse.json({ success: true, data: { userId, touchpointId: touchpoint.id } });
       }
       case 'build': {
         const journey = mapper.buildJourney(userId);

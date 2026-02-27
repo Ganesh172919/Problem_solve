@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
         logger.info('Lineage transformation recorded', {
           source,
           target,
-          transformationId: transformation.transformationId,
+          transformationId: transformation.id,
           edges: edges.length,
         });
         return NextResponse.json({ success: true, data: { edges } });
@@ -96,8 +96,8 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: 'asset is required' }, { status: 400 });
         }
         tracker.registerAsset(asset);
-        logger.info('Data asset registered', { assetId: asset.assetId, name: asset.name });
-        return NextResponse.json({ success: true, data: { assetId: asset.assetId } });
+        logger.info('Data asset registered', { assetId: asset.id, name: asset.name });
+        return NextResponse.json({ success: true, data: { assetId: asset.id } });
       }
       case 'export': {
         const format = (body as { format?: 'json' | 'dot' | 'mermaid' }).format ?? 'json';

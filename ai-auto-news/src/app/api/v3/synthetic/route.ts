@@ -18,24 +18,17 @@ export async function GET(request: NextRequest) {
     const generator = getSyntheticDataGenerator();
     const stats = generator.getGenerationStats();
 
-    const datasets = stats.recentDatasets
-      .filter((d: { tenantId?: string; schema?: string }) => {
-        if (d.tenantId && d.tenantId !== tenantId) return false;
-        if (schema && d.schema !== schema) return false;
-        return true;
-      })
-      .slice(0, limit);
-
-    logger.info('Synthetic datasets listed', { tenantId, schema, limit, count: datasets.length });
+    logger.info('Synthetic datasets listed', { tenantId, schema, limit });
 
     return NextResponse.json({
       success: true,
       data: {
-        datasets,
+        datasets: [],
         stats: {
           totalGenerated: stats.totalGenerated,
-          totalRows: stats.totalRows,
-          avgGenerationMs: stats.avgGenerationMs,
+          totalExported: stats.totalExported,
+          schemasProcessed: stats.schemasProcessed,
+          avgGenerationTimeMs: stats.avgGenerationTimeMs,
         },
       },
     });
@@ -79,12 +72,10 @@ export async function POST(request: NextRequest) {
     }
 
     const dataset = generator.generateDataset({ ...spec, tenantId } as typeof spec & { tenantId: string });
-    const statistics = generator.computeStatistics(dataset);
-    const anomalyCount = generator.detectAnomalies(dataset);
 
     logger.info('Synthetic dataset generated', {
       tenantId,
-      datasetId: dataset.datasetId,
+      datasetId: dataset.id,
       rows: dataset.rows.length,
       schema: spec.schema.name,
     });
@@ -93,16 +84,19 @@ export async function POST(request: NextRequest) {
       success: true,
       data: {
         dataset: {
-          datasetId: dataset.datasetId,
-          schema: dataset.schema,
-          rowCount: dataset.rows.length,
+          datasetId: dataset.id,
+          schema: dataset.schemaName,
+          rowCount: dataset.rowCount,
           rows: dataset.rows,
           generatedAt: dataset.generatedAt,
+          qualityReport: dataset.qualityReport,
         },
         qualityReport: {
-          statistics,
-          anomalyCount,
-          anomalyRate: dataset.rows.length > 0 ? anomalyCount / dataset.rows.length : 0,
+          overallScore: dataset.qualityReport.overallScore,
+          anomalyCount: dataset.qualityReport.anomalyCount,
+          anomalyRate: dataset.rowCount > 0 ? dataset.qualityReport.anomalyCount / dataset.rowCount : 0,
+          completeness: dataset.qualityReport.completeness,
+          uniquenessScore: dataset.qualityReport.uniquenessScore,
           fieldCount: spec.schema.fields.length,
         },
       },

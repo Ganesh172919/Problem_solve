@@ -83,16 +83,16 @@ export async function POST(request: NextRequest) {
     switch (action) {
       case 'keygen': {
         const keyPair = qre.generateKeyPair(algorithm, securityLevel);
-        logger.info('Quantum key pair generated', { algorithm, securityLevel, keyId: keyPair.keyId });
+        logger.info('Quantum key pair generated', { algorithm, securityLevel, keyId: keyPair.id });
         return NextResponse.json({
           success: true,
           data: {
-            keyId: keyPair.keyId,
+            keyId: keyPair.id,
             algorithm: keyPair.algorithm,
             securityLevel: keyPair.securityLevel,
             publicKey: Buffer.from(keyPair.publicKey).toString('base64'),
             privateKey: Buffer.from(keyPair.privateKey).toString('base64'),
-            generatedAt: keyPair.generatedAt,
+            createdAt: keyPair.createdAt,
           },
         });
       }
@@ -108,9 +108,10 @@ export async function POST(request: NextRequest) {
           success: true,
           data: {
             ciphertext: Buffer.from(cipherText.ciphertext).toString('base64'),
-            encapsulatedKey: Buffer.from(cipherText.encapsulatedKey).toString('base64'),
+            encapsulatedKey: cipherText.encapsulatedKey ? Buffer.from(cipherText.encapsulatedKey).toString('base64') : undefined,
             algorithm: cipherText.algorithm,
-            nonce: cipherText.nonce ? Buffer.from(cipherText.nonce).toString('base64') : undefined,
+            nonce: Buffer.from(cipherText.context.nonce).toString('base64'),
+            sessionId: cipherText.context.sessionId,
           },
         });
       }
@@ -121,15 +122,22 @@ export async function POST(request: NextRequest) {
         const privKey = Buffer.from(body.privateKey, 'base64');
         const cipherData = JSON.parse(body.payload) as {
           ciphertext: string;
-          encapsulatedKey: string;
+          encapsulatedKey?: string;
           algorithm: QuantumAlgorithm;
-          nonce?: string;
+          nonce: string;
+          sessionId: string;
         };
         const cipherTextObj = {
           ciphertext: Buffer.from(cipherData.ciphertext, 'base64'),
-          encapsulatedKey: Buffer.from(cipherData.encapsulatedKey, 'base64'),
+          encapsulatedKey: cipherData.encapsulatedKey ? Buffer.from(cipherData.encapsulatedKey, 'base64') : undefined,
           algorithm: cipherData.algorithm,
-          nonce: cipherData.nonce ? Buffer.from(cipherData.nonce, 'base64') : undefined,
+          context: {
+            algorithm: cipherData.algorithm,
+            securityLevel: securityLevel,
+            nonce: Buffer.from(cipherData.nonce, 'base64'),
+            sessionId: cipherData.sessionId,
+          },
+          createdAt: new Date(),
         };
         const decrypted = qre.decrypt(cipherTextObj, privKey);
         logger.info('Payload decrypted', { algorithm });
@@ -151,7 +159,7 @@ export async function POST(request: NextRequest) {
           data: {
             signature: Buffer.from(sigResult.signature).toString('base64'),
             algorithm: sigResult.algorithm,
-            timestamp: sigResult.timestamp,
+            signedAt: sigResult.signedAt,
           },
         });
       }
@@ -161,11 +169,13 @@ export async function POST(request: NextRequest) {
         }
         const message = Buffer.from(body.payload, 'base64');
         const pubKey = Buffer.from(body.publicKey, 'base64');
-        const sigObj = body.signature as { signature: string; algorithm: QuantumAlgorithm; timestamp: number };
+        const sigObj = body.signature as { signature: string; algorithm: QuantumAlgorithm; signedAt: number; keyFingerprint: string };
         const sigResult = {
+          message,
           signature: Buffer.from(sigObj.signature, 'base64'),
           algorithm: sigObj.algorithm,
-          timestamp: sigObj.timestamp,
+          keyFingerprint: sigObj.keyFingerprint ?? '',
+          signedAt: new Date(sigObj.signedAt),
         };
         const valid = qre.verify(message, sigResult, pubKey);
         logger.info('Signature verified', { algorithm, valid });
@@ -184,8 +194,8 @@ export async function POST(request: NextRequest) {
           data: {
             sharedSecret: Buffer.from(exchangeResult.sharedSecret).toString('base64'),
             algorithm: exchangeResult.algorithm,
-            sessionKeyId: exchangeResult.sessionKeyId,
-            expiresAt: exchangeResult.expiresAt,
+            sessionId: exchangeResult.sessionId,
+            securityBits: exchangeResult.securityBits,
           },
         });
       }
