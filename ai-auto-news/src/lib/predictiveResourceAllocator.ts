@@ -163,7 +163,7 @@ export class PredictiveResourceAllocator {
     const predictedPeak = Math.min(1, seasonalForecast + safetyMargin);
 
     const currentAllocation = budget?.softLimit ?? 1.0;
-    const recommendedAllocation = predictedPeak * (budget?.peakMultiplier ?? 1.3 ?? 1.3);
+    const recommendedAllocation = predictedPeak * (budget?.peakMultiplier ?? 1.3);
 
     const confidence = this.calculateConfidence(history.length, variance);
 

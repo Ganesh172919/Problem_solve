@@ -245,7 +245,6 @@ export class AdaptiveContentRanker {
     }
     const userBandit = this.userBandits.get(user.userId)!;
     for (const id of candidateIds) userBandit.addArm(id);
-    this.globalBandit.addArm.bind(this.globalBandit);
     for (const id of candidateIds) {
       this.globalBandit.addArm(id);
       this.thompsonBandit.addArm(id);
@@ -257,19 +256,13 @@ export class AdaptiveContentRanker {
 
       const factors: Record<string, number> = {};
 
-      // Quality & recency
       factors.quality = content.qualityScore;
       factors.recency = recencyDecay(content.publishedAt);
-
-      // Personalization
       factors.personalization = computePersonalizationScore(content, user);
-
-      // Bandit scores
       factors.ucb1 = isFinite(this.globalBandit.score(id)) ? Math.min(1, this.globalBandit.score(id)) : 1;
       factors.thompson = this.thompsonBandit.score(id);
       factors.userBandit = isFinite(userBandit.score(id)) ? Math.min(1, userBandit.score(id)) : 1;
 
-      // Diversity penalty (avoid too many same-topic items)
       const alreadyRanked = (this.rankingHistory.get(user.userId) ?? []).slice(-10);
       const topicOverlap = alreadyRanked.filter(r => {
         const prev = this.contents.get(r.contentId);
@@ -277,7 +270,6 @@ export class AdaptiveContentRanker {
       }).length;
       factors.diversity = Math.max(0, 1 - topicOverlap * 0.15);
 
-      // Novelty: not seen recently
       const recentlySeen = user.interactionHistory.slice(-50).includes(id);
       factors.novelty = recentlySeen ? 0.1 : 1.0;
 
