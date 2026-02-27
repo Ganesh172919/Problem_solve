@@ -364,7 +364,7 @@ class CircuitBreakerOrchestrator {
   private addLatencySample(b: BreakerState, latency: number): void {
     b.latencySamples.push(latency);
     if (b.latencySamples.length > 100) b.latencySamples.shift();
-    const sorted = [...b.latencySamples].sort((a, c) => a - c);
+    const sorted = [...b.latencySamples].sort((a, b) => a - b);
     const p = (pct: number) => sorted[Math.floor(sorted.length * pct)] ?? 0;
     b.metrics.latencyP50 = p(0.50);
     b.metrics.latencyP95 = p(0.95);
@@ -403,7 +403,7 @@ class CircuitBreakerOrchestrator {
           openSinceMs,
         };
       })
-      .sort((a, c) => c.failureRate - a.failureRate);
+      .sort((a, b) => b.failureRate - a.failureRate);
   }
 
   /**
