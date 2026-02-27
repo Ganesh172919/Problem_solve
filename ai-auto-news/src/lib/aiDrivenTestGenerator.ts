@@ -330,7 +330,7 @@ class AIDrivenTestGenerator {
       lines.push(`describe('${suite.functionName}', () => {`);
       for (const tc of suite.testCases) {
         const isAsync = tc.assertions.some(a => a.type === 'resolves' || a.type === 'rejects');
-        lines.push(`  it('${tc.description.replace(/'/g, "\\'")}', ${isAsync ? 'async ' : ''}() => {`);
+        lines.push(`  it('${tc.description.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', ${isAsync ? 'async ' : ''}() => {`);
         tc.assertions.forEach(a => lines.push(assertLine(suite, tc, a)));
         lines.push(`  });`);
       }
