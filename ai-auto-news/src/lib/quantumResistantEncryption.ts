@@ -152,21 +152,24 @@ const KYBER_PARAMS: Record<SecurityLevel, { k: number; eta1: number; eta2: numbe
 };
 
 function kyberGenPoly(seed: Uint8Array, n: number, q: number): number[] {
-  const bytes = xof(seed, n * 3);
+  const bytes = xof(seed, n * 3 + 2); // +2 to avoid out-of-bounds on last element
   const p: number[] = [];
   for (let i = 0; i < n; i++) p.push(((bytes[i * 3] | (bytes[i * 3 + 1] << 8)) % q));
   return p;
 }
 
 function kyberCBD(seed: Uint8Array, eta: number, n: number): number[] {
-  const bytes = xof(seed, n * eta / 4);
+  // Correct CBD: allocate 2*eta bits per coefficient; use a flat bit stream
+  const bitsNeeded = 2 * eta * n;
+  const bytesNeeded = Math.ceil(bitsNeeded / 8);
+  const bytes = xof(seed, bytesNeeded);
+  const getBit = (pos: number) => (bytes[pos >> 3] >> (pos & 7)) & 1;
   const p: number[] = [];
   for (let i = 0; i < n; i++) {
     let a = 0, b = 0;
-    for (let j = 0; j < eta; j++) {
-      a += (bytes[Math.floor(i * eta / 8 + j / 8)] >> (j % 8)) & 1;
-      b += (bytes[Math.floor(i * eta / 8 + (eta + j) / 8)] >> ((eta + j) % 8)) & 1;
-    }
+    const base = 2 * eta * i;
+    for (let j = 0; j < eta; j++) a += getBit(base + j);
+    for (let j = 0; j < eta; j++) b += getBit(base + eta + j);
     p.push(polyMod(a - b, KYBER_Q));
   }
   return p;

@@ -258,8 +258,9 @@ export class EdgeComputingOrchestrator {
       const scored = candidates.map(n => {
         const depLoad   = (this.deployments.get(n.id) ?? []).filter(d => d.status === 'running').length;
         const capScore  = 1 - Math.min(1, depLoad / Math.max(n.cpuCores * 4, 1));
-        const latKm     = client?.clientLat !== undefined
-          ? haversineKm(client.clientLat!, client.clientLon ?? 0, n.lat, n.lon)
+        // Only compute geo distance when both lat and lon are provided
+        const latKm     = (client?.clientLat !== undefined && client?.clientLon !== undefined)
+          ? haversineKm(client.clientLat, client.clientLon, n.lat, n.lon)
           : 0;
         const latScore  = 1 - Math.min(1, latencyFromDistance(latKm) / (wl.maxLatencyMs || 100));
         const priorityB = wl.priority === 'critical' ? 0.1 : wl.priority === 'high' ? 0.05 : 0;

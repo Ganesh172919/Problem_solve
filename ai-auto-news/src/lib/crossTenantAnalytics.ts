@@ -297,8 +297,8 @@ export class CrossTenantAnalytics {
     return Array.from(this.tenantData.entries()).map(([id, data], idx) => {
       const v      = data[metricName]?.[data[metricName].length - 1] ?? mean;
       const zscore = std > 0 ? (v - mean) / std : 0;
-      // Hash tenant ID to avoid direct identification
-      const hash   = `tenant_${(idx * 7 + 13) % 997}`;
+      // Pseudonymous hash: XOR-fold the tenant ID chars to produce a stable token
+      const hash = 'tenant_' + Array.from(id).reduce((acc, ch, i) => (acc ^ (ch.charCodeAt(0) * (i + 31))) & 0xffff, 0x9e37).toString(16).padStart(4, '0');
       return {
         tenantHash: hash,
         value: v + laplaceNoise(std * 0.01, DEFAULT_POLICY.epsilon * 2),

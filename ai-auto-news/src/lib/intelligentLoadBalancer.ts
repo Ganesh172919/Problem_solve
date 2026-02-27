@@ -252,7 +252,7 @@ export class IntelligentLoadBalancer {
       const latBase = latHist.length > 0 ? latHist.reduce((a, b) => a + b, 0) / latHist.length : 20;
       const predLat: number[] = [];
       for (let t = 0; t < horizon; t++) {
-        const seasonal = 1 + 0.1 * Math.sin((2 * Math.PI * t) / Math.max(horizon, 24));
+        const seasonal = 1 + 0.1 * Math.sin((2 * Math.PI * t) / 24); // fixed 24-hour seasonality
         level = alpha * base + (1 - alpha) * level;
         const v = Math.max(0, level * seasonal + (Math.random() - 0.5) * base * 0.1);
         predicted.push(Math.round(v));

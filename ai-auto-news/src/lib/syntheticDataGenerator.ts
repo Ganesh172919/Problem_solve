@@ -155,8 +155,11 @@ function zipfSample(n: number, s: number, rng: () => number): number {
 }
 
 function generateUUID(rng: () => number): string {
-  const hex = (n: number) => Math.floor(rng() * n).toString(16).padStart(2, '0');
-  return `${hex(256)}${hex(256)}${hex(256)}${hex(256)}-${hex(256)}${hex(256)}-4${hex(16)}${hex(256)}-${(8 + Math.floor(rng() * 4)).toString(16)}${hex(256)}-${hex(256)}${hex(256)}${hex(256)}${hex(256)}${hex(256)}${hex(256)}`;
+  // RFC 4122 v4: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx where y is 8,9,a,b
+  const h4 = () => Math.floor(rng() * 0x10000).toString(16).padStart(4, '0');
+  const variant = (8 | (Math.floor(rng() * 4))).toString(16);
+  const r1 = Math.floor(rng() * 0x1000).toString(16).padStart(3, '0');
+  return `${h4()}${h4()}-${h4()}-4${Math.floor(rng() * 0x1000).toString(16).padStart(3, '0')}-${variant}${r1}-${h4()}${h4()}${h4()}`;
 }
 
 function generateEmail(rng: () => number): string {

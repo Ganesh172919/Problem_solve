@@ -135,7 +135,7 @@ function holtwinters(data: number[], alpha: number, beta: number, horizon: numbe
     fitted.push(level + trend);
   }
 
-  return Array.from({ length: horizon }, (_, h) => Math.max(0, level + (h + 1) * trend));
+  return Array.from({ length: horizon }, (_, h) => Math.max(0, level + h * trend));
 }
 
 export class InfrastructureCostPredictor {
