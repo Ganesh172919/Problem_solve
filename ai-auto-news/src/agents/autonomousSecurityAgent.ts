@@ -504,7 +504,7 @@ export class AutonomousSecurityAgent {
 
   private detectXSS(body: string): boolean {
     const patterns = [
-      /<script[^>]*>.*?<\/script>/gi,
+      /<script[^>]*>[\s\S]*?<\/script[\s\S]*?>/gi,
       /javascript\s*:/gi,
       /on\w+\s*=\s*["'][^"']*["']/gi,
       /<img[^>]*onerror[^>]*>/gi,

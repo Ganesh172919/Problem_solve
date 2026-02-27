@@ -149,7 +149,7 @@ export interface ChargebackReport {
   tenants: TenantChargeback[];
   totalCost: number;
   currency: string;
-  summary: ChargbackSummary;
+  summary: ChargebackSummary;
 }
 
 export interface TenantChargeback {
@@ -163,7 +163,7 @@ export interface TenantChargeback {
   costPercentOfTotal: number;
 }
 
-export interface ChargbackSummary {
+export interface ChargebackSummary {
   largestTenant: string;
   fastestGrowing: string;
   totalDirectCosts: number;

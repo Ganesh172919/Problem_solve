@@ -595,7 +595,7 @@ export class MultiTenantAnalytics {
 
   private computeRevenueAttribution(
     tenantId: string,
-    period: TimePeriod,
+    timePeriod: TimePeriod,
     events: AnalyticsEvent[]
   ): RevenueAttribution {
     const revenueEvents = events.filter(e => e.category === 'revenue');
@@ -618,7 +618,7 @@ export class MultiTenantAnalytics {
 
     return {
       tenantId,
-      period,
+      period: timePeriod,
       totalRevenue,
       byChannel,
       byFeature,
