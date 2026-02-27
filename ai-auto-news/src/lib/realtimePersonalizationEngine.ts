@@ -413,11 +413,13 @@ export class RealtimePersonalizationEngine {
     }
   }
 
-  private generateCandidates(profile: UserProfile, _context: PersonalizationContext): string[] {
+  private generateCandidates(profile: UserProfile, context: PersonalizationContext): string[] {
     const base = Array.from(this.contentFeatures.keys());
     if (base.length > 0) return base.slice(0, 100);
-    // Synthetic candidate pool based on profile topics
-    return profile.preferences.topics.flatMap((t, i) =>
+    // Generate topic-scoped synthetic candidates; use context page as an additional signal
+    const contextBoost = context.pageContext ? [context.pageContext] : [];
+    const topics = [...contextBoost, ...profile.preferences.topics];
+    return topics.flatMap((t, i) =>
       Array.from({ length: 5 }, (_, j) => `content_${t}_${i}_${j}`),
     );
   }

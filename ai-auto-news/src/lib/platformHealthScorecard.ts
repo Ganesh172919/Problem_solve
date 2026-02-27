@@ -166,7 +166,7 @@ export class PlatformHealthScorecard {
 
     const overallScore = dimensions.reduce((s, d) => s + d.score * d.weight, 0);
     const grade = this.computeGrade(overallScore);
-    const predicted = this.predictFutureScoret('availability', 30);
+    const predicted = this.predictFutureScore('availability', 30);
     const slaCompliant = this.checkSLACompliance(Array.from(this.slas.values()).map((s) => s.target)).length === 0;
 
     logger.info('Scorecard generated', { overallScore: overallScore.toFixed(3), grade, slaCompliant });
@@ -181,7 +181,7 @@ export class PlatformHealthScorecard {
     return { dimension, score, weight, status, trend, details: `Current EWMA: ${(score * 100).toFixed(1)}%` };
   }
 
-  predictFutureScoret(dimension: HealthDimension, horizonMinutes: number): number {
+  predictFutureScore(dimension: HealthDimension, horizonMinutes: number): number {
     const points = this.metricStore.get(dimension) ?? [];
     if (points.length < 2) return this.ewmaScores.get(dimension) ?? 0.9;
     const forecast = this.forecastScore(points, horizonMinutes);

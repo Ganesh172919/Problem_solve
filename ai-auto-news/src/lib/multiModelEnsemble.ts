@@ -293,12 +293,14 @@ export class MultiModelEnsemble {
     const totalWeight = weights.reduce((s, w) => s + w, 0);
     if (totalWeight === 0) return responses[0].content;
     // Return the response whose weight is closest to weighted centroid confidence
-    const centroid = responses.reduce((s, r, i) => s + r.confidence * (weights[i] / totalWeight), 0);
-    const closest = responses.reduce((best, r, i) =>
-      Math.abs(r.confidence - centroid) < Math.abs(best.r.confidence - centroid) ? { r, i } : best,
-      { r: responses[0], i: 0 },
+    const centroid = responses.reduce((s, response, i) => s + response.confidence * (weights[i] / totalWeight), 0);
+    const closest = responses.reduce((best, response, i) =>
+      Math.abs(response.confidence - centroid) < Math.abs(best.response.confidence - centroid)
+        ? { response, i }
+        : best,
+      { response: responses[0], i: 0 },
     );
-    return closest.r.content;
+    return closest.response.content;
   }
 
   applyBestOfN(responses: ModelResponse[], n: number): ModelResponse {

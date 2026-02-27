@@ -122,6 +122,12 @@ function addBusinessDays(startMs: number, days: number): number {
   return current.getTime();
 }
 
+// ── Retention constants (days) ────────────────────────────────────────────────
+
+const RETENTION_ONE_YEAR_DAYS = 365;
+const RETENTION_THREE_YEARS_DAYS = 1095;
+const RETENTION_SEVEN_YEARS_DAYS = 2555;
+
 // ── Class ─────────────────────────────────────────────────────────────────────
 
 export class UserPrivacyManager {
@@ -134,7 +140,13 @@ export class UserPrivacyManager {
     effectiveDate: Date.now(),
     purposes: [],
     dataCategories: ['identity', 'usage', 'behavioral', 'financial', 'health'],
-    retentionPeriods: { identity: 1095, usage: 180, behavioral: 90, financial: 2555, health: 2555 },
+    retentionPeriods: {
+      identity: RETENTION_THREE_YEARS_DAYS,
+      usage: 180,
+      behavioral: 90,
+      financial: RETENTION_SEVEN_YEARS_DAYS,
+      health: RETENTION_SEVEN_YEARS_DAYS,
+    },
   };
 
   submitRequest(userId: string, right: PrivacyRight, regulation: PrivacyRequest['regulation']): PrivacyRequest {
@@ -218,7 +230,7 @@ export class UserPrivacyManager {
       purpose,
       granted,
       timestamp: Date.now(),
-      expiresAt: granted ? Date.now() + 365 * 86_400_000 : undefined,
+      expiresAt: granted ? Date.now() + RETENTION_ONE_YEAR_DAYS * 86_400_000 : undefined,
       ipAddress: metadata.ipAddress,
       userAgent: metadata.userAgent,
       version,
@@ -266,10 +278,10 @@ export class UserPrivacyManager {
     const existing = this.dataInventories.get(userId);
     if (existing && Date.now() - existing.lastUpdated < 3_600_000) return existing;
     const defaultTypes: DataTypeRecord[] = [
-      { type: 'identity', location: 'users_table', retentionDays: 1095, purpose: 'account_management', sensitive: false, encrypted: true },
+      { type: 'identity', location: 'users_table', retentionDays: RETENTION_THREE_YEARS_DAYS, purpose: 'account_management', sensitive: false, encrypted: true },
       { type: 'usage', location: 'events_table', retentionDays: 180, purpose: 'analytics', sensitive: false, encrypted: false },
       { type: 'behavioral', location: 'sessions_table', retentionDays: 90, purpose: 'personalization', sensitive: false, encrypted: false },
-      { type: 'financial', location: 'payments_table', retentionDays: 2555, purpose: 'billing', sensitive: true, encrypted: true },
+      { type: 'financial', location: 'payments_table', retentionDays: RETENTION_SEVEN_YEARS_DAYS, purpose: 'billing', sensitive: true, encrypted: true },
     ];
     const inventory: DataInventory = { userId, dataTypes: defaultTypes, lastUpdated: Date.now() };
     this.dataInventories.set(userId, inventory);
