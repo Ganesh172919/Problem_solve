@@ -1,12 +1,19 @@
-import { logger } from '@/lib/logger';
-import { TIER_LIMITS } from '@/lib/config';
-import { SubscriptionTier } from '@/types/saas';
+/**
+ * @module subscriptionLifecycleManager
+ * @description Subscription lifecycle management for SaaS billing. Handles plan
+ * registration, subscription creation with optional trials, upgrades/downgrades
+ * with real proration math, cancellation, pause/resume, renewal processing,
+ * grace periods for failed payments, usage-limit enforcement per tier, trial
+ * expiration, and revenue analytics (MRR, ARR, churn, ARPU).
+ */
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
+import { getLogger } from './logger';
 
-export type LifecycleStatus =
+const logger = getLogger();
+
+// ── Types ────────────────────────────────────────────────────────────────────
+
+export type SubscriptionStatus =
   | 'trialing'
   | 'active'
   | 'past_due'
@@ -14,93 +21,90 @@ export type LifecycleStatus =
   | 'cancelled'
   | 'expired';
 
-export interface LifecycleSubscription {
-  id: string;
-  userId: string;
-  tier: SubscriptionTier;
-  status: LifecycleStatus;
-  trialStartedAt: string | null;
-  trialEndsAt: string | null;
-  activatedAt: string | null;
-  currentPeriodStart: string;
-  currentPeriodEnd: string;
-  cancelledAt: string | null;
-  expiredAt: string | null;
-  pausedAt: string | null;
-  resumedAt: string | null;
-  gracePeriodEndsAt: string | null;
-  renewalAttempts: number;
-  lastRenewalAttemptAt: string | null;
-  previousTier: SubscriptionTier | null;
-  createdAt: string;
-  updatedAt: string;
-}
+export type PlanTier = 'free' | 'starter' | 'pro' | 'enterprise';
 
-export interface LifecycleEvent {
-  id: string;
-  subscriptionId: string;
-  userId: string;
-  type: LifecycleEventType;
-  fromStatus: LifecycleStatus;
-  toStatus: LifecycleStatus;
-  fromTier: SubscriptionTier | null;
-  toTier: SubscriptionTier | null;
-  revenueImpact: number;
-  metadata: Record<string, unknown>;
-  createdAt: string;
-}
-
-export type LifecycleEventType =
-  | 'trial_started'
-  | 'trial_converted'
-  | 'trial_expired'
+export type SubscriptionEventType =
+  | 'created'
   | 'activated'
-  | 'payment_failed'
-  | 'grace_period_started'
-  | 'grace_period_ended'
-  | 'paused'
-  | 'resumed'
   | 'upgraded'
   | 'downgraded'
-  | 'renewed'
+  | 'paused'
+  | 'resumed'
   | 'cancelled'
-  | 'expired'
-  | 'renewal_retry';
+  | 'renewed'
+  | 'payment_failed'
+  | 'payment_succeeded'
+  | 'trial_started'
+  | 'trial_ended';
 
-export interface LifecycleConfig {
-  trialDurationDays: number;
-  gracePeriodDays: number;
-  maxRenewalAttempts: number;
-  renewalRetryIntervalHours: number;
-  pauseMaxDurationDays: number;
+// ── Interfaces ───────────────────────────────────────────────────────────────
+
+export interface PlanLimits {
+  apiCallsPerMonth: number;
+  storageGb: number;
+  teamMembers: number;
+  pluginsAllowed: number;
+  aiTokensPerMonth: number;
 }
 
-export interface PlanChangeResult {
-  subscription: LifecycleSubscription;
-  proratedAmount: number;
-  creditAmount: number;
-  chargeAmount: number;
-  effectiveDate: string;
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  tier: PlanTier;
+  monthlyPriceCents: number;
+  annualPriceCents: number;
+  features: string[];
+  limits: PlanLimits;
+  trialDays: number;
 }
 
-export interface RenewalResult {
-  success: boolean;
-  subscription: LifecycleSubscription;
-  attemptNumber: number;
-  nextRetryAt: string | null;
-  error: string | null;
+export interface Subscription {
+  id: string;
+  tenantId: string;
+  planId: string;
+  status: SubscriptionStatus;
+  currentPeriodStart: Date;
+  currentPeriodEnd: Date;
+  trialEnd?: Date;
+  cancelAt?: Date;
+  pausedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  metadata: Record<string, unknown>;
 }
 
-type LifecycleEventListener = (event: LifecycleEvent) => void;
+export interface SubscriptionEvent {
+  id: string;
+  subscriptionId: string;
+  type: SubscriptionEventType;
+  data: Record<string, unknown>;
+  timestamp: Date;
+}
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+export interface ProrationResult {
+  creditCents: number;
+  chargeCents: number;
+  netCents: number;
+  description: string;
+}
+
+export interface RevenueMetrics {
+  mrr: number;
+  arr: number;
+  totalSubscriptions: number;
+  trialConversionRate: number;
+  churnRate: number;
+  avgRevenuePerUser: number;
+  planDistribution: Record<string, number>;
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+const TIER_ORDER: Record<PlanTier, number> = { free: 0, starter: 1, pro: 2, enterprise: 3 };
+const GRACE_PERIOD_DAYS = 7;
 
 function generateId(prefix: string): string {
-  const ts = Date.now().toString(36);
-  const rand = Math.random().toString(36).substring(2, 10);
-  return `${prefix}_${ts}${rand}`;
+  return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
 function addDays(date: Date, days: number): Date {
@@ -109,490 +113,486 @@ function addDays(date: Date, days: number): Date {
   return d;
 }
 
-function addHours(date: Date, hours: number): Date {
-  const d = new Date(date);
-  d.setHours(d.getHours() + hours);
-  return d;
-}
-
 function daysBetween(a: Date, b: Date): number {
-  return Math.abs(b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24);
+  return Math.max(0, Math.round((b.getTime() - a.getTime()) / 86_400_000));
 }
 
-// ---------------------------------------------------------------------------
-// Manager
-// ---------------------------------------------------------------------------
-
-const DEFAULT_CONFIG: LifecycleConfig = {
-  trialDurationDays: 14,
-  gracePeriodDays: 7,
-  maxRenewalAttempts: 4,
-  renewalRetryIntervalHours: 24,
-  pauseMaxDurationDays: 90,
-};
+// ── Manager ──────────────────────────────────────────────────────────────────
 
 export class SubscriptionLifecycleManager {
-  private subscriptions = new Map<string, LifecycleSubscription>();
-  private events: LifecycleEvent[] = [];
-  private listeners: LifecycleEventListener[] = [];
-  private config: LifecycleConfig;
+  private plans = new Map<string, SubscriptionPlan>();
+  private subscriptions = new Map<string, Subscription>();
+  private tenantIndex = new Map<string, string>();
+  private events = new Map<string, SubscriptionEvent[]>();
+  private usage = new Map<string, Record<string, number>>();
+  private cancelledCount = 0;
+  private totalEverCreated = 0;
+  private trialConversions = 0;
+  private trialExpirations = 0;
 
-  constructor(config: Partial<LifecycleConfig> = {}) {
-    this.config = { ...DEFAULT_CONFIG, ...config };
-    logger.info('SubscriptionLifecycleManager initialized', {
-      config: this.config,
-    });
+  // ── Plan management ──────────────────────────────────────────────────────
+
+  registerPlan(plan: SubscriptionPlan): void {
+    this.plans.set(plan.id, plan);
+    logger.info('Plan registered', { planId: plan.id, tier: plan.tier });
   }
 
-  // ---- event system -------------------------------------------------------
-
-  onEvent(listener: LifecycleEventListener): void {
-    this.listeners.push(listener);
+  getPlan(planId: string): SubscriptionPlan | null {
+    return this.plans.get(planId) ?? null;
   }
 
-  private emit(event: LifecycleEvent): void {
-    this.events.push(event);
-    for (const listener of this.listeners) {
-      try {
-        listener(event);
-      } catch (err) {
-        logger.error('Lifecycle event listener error', err instanceof Error ? err : new Error(String(err)));
-      }
+  getPlans(): SubscriptionPlan[] {
+    return Array.from(this.plans.values());
+  }
+
+  // ── Subscription CRUD ────────────────────────────────────────────────────
+
+  createSubscription(tenantId: string, planId: string, startTrial = false): Subscription {
+    const plan = this.plans.get(planId);
+    if (!plan) throw new Error(`Plan not found: ${planId}`);
+
+    if (this.tenantIndex.has(tenantId)) {
+      throw new Error(`Tenant ${tenantId} already has an active subscription`);
     }
-  }
 
-  private createEvent(
-    sub: LifecycleSubscription,
-    type: LifecycleEventType,
-    fromStatus: LifecycleStatus,
-    toStatus: LifecycleStatus,
-    fromTier: SubscriptionTier | null,
-    toTier: SubscriptionTier | null,
-    metadata: Record<string, unknown> = {},
-  ): LifecycleEvent {
-    const revenueImpact = this.calculateRevenueImpact(fromTier, toTier, fromStatus, toStatus);
-    const event: LifecycleEvent = {
-      id: generateId('evt'),
-      subscriptionId: sub.id,
-      userId: sub.userId,
-      type,
-      fromStatus,
-      toStatus,
-      fromTier,
-      toTier,
-      revenueImpact,
-      metadata,
-      createdAt: new Date().toISOString(),
-    };
-    this.emit(event);
-    return event;
-  }
-
-  // ---- revenue impact -----------------------------------------------------
-
-  private tierPrice(tier: SubscriptionTier | null): number {
-    if (!tier) return 0;
-    return TIER_LIMITS[tier].monthlyPriceUsd;
-  }
-
-  calculateRevenueImpact(
-    fromTier: SubscriptionTier | null,
-    toTier: SubscriptionTier | null,
-    fromStatus: LifecycleStatus,
-    toStatus: LifecycleStatus,
-  ): number {
-    const fromPrice = fromStatus === 'active' || fromStatus === 'past_due' ? this.tierPrice(fromTier) : 0;
-    const toPrice = toStatus === 'active' ? this.tierPrice(toTier) : 0;
-    return toPrice - fromPrice;
-  }
-
-  // ---- trial management ---------------------------------------------------
-
-  startTrial(userId: string, tier: SubscriptionTier = 'pro'): LifecycleSubscription {
     const now = new Date();
-    const trialEnd = addDays(now, this.config.trialDurationDays);
+    const useTrial = startTrial && plan.trialDays > 0;
+    const periodEnd = useTrial ? addDays(now, plan.trialDays) : addDays(now, 30);
 
-    const sub: LifecycleSubscription = {
+    const sub: Subscription = {
       id: generateId('sub'),
-      userId,
-      tier,
-      status: 'trialing',
-      trialStartedAt: now.toISOString(),
-      trialEndsAt: trialEnd.toISOString(),
-      activatedAt: null,
-      currentPeriodStart: now.toISOString(),
-      currentPeriodEnd: trialEnd.toISOString(),
-      cancelledAt: null,
-      expiredAt: null,
-      pausedAt: null,
-      resumedAt: null,
-      gracePeriodEndsAt: null,
-      renewalAttempts: 0,
-      lastRenewalAttemptAt: null,
-      previousTier: null,
-      createdAt: now.toISOString(),
-      updatedAt: now.toISOString(),
+      tenantId,
+      planId,
+      status: useTrial ? 'trialing' : 'active',
+      currentPeriodStart: now,
+      currentPeriodEnd: periodEnd,
+      trialEnd: useTrial ? addDays(now, plan.trialDays) : undefined,
+      createdAt: now,
+      updatedAt: now,
+      metadata: {},
     };
 
     this.subscriptions.set(sub.id, sub);
-    this.createEvent(sub, 'trial_started', 'trialing', 'trialing', null, tier);
-    logger.info('Trial started', { subscriptionId: sub.id, userId, tier });
+    this.tenantIndex.set(tenantId, sub.id);
+    this.usage.set(sub.id, {});
+    this.totalEverCreated++;
+
+    this.recordEvent(sub.id, 'created', { planId, tenantId });
+    if (useTrial) {
+      this.recordEvent(sub.id, 'trial_started', { trialDays: plan.trialDays });
+    } else {
+      this.recordEvent(sub.id, 'activated', { planId });
+    }
+
+    logger.info('Subscription created', { subscriptionId: sub.id, tenantId, planId, trial: useTrial });
     return sub;
   }
 
-  convertTrial(subscriptionId: string): LifecycleSubscription {
-    const sub = this.getOrThrow(subscriptionId);
-    if (sub.status !== 'trialing') {
-      throw new Error(`Cannot convert non-trialing subscription ${subscriptionId} (status=${sub.status})`);
+  getSubscription(subscriptionId: string): Subscription | null {
+    return this.subscriptions.get(subscriptionId) ?? null;
+  }
+
+  getTenantSubscription(tenantId: string): Subscription | null {
+    const subId = this.tenantIndex.get(tenantId);
+    if (!subId) return null;
+    return this.subscriptions.get(subId) ?? null;
+  }
+
+  // ── Upgrade / Downgrade ──────────────────────────────────────────────────
+
+  upgradeSubscription(
+    subscriptionId: string,
+    newPlanId: string,
+  ): { subscription: Subscription; proration: ProrationResult } {
+    const sub = this.requireSubscription(subscriptionId);
+    const currentPlan = this.requirePlan(sub.planId);
+    const newPlan = this.requirePlan(newPlanId);
+
+    if (TIER_ORDER[newPlan.tier] <= TIER_ORDER[currentPlan.tier]) {
+      throw new Error('New plan must be a higher tier for upgrade');
     }
+    this.assertMutable(sub);
+
+    const totalDays = daysBetween(sub.currentPeriodStart, sub.currentPeriodEnd);
+    const daysRemaining = daysBetween(new Date(), sub.currentPeriodEnd);
+    const proration = this.calculateProration(sub.planId, newPlanId, daysRemaining, totalDays);
 
     const now = new Date();
-    const periodEnd = addDays(now, 30);
-    const prev = sub.status;
-
+    const wasTrial = sub.status === 'trialing';
+    sub.planId = newPlanId;
     sub.status = 'active';
-    sub.activatedAt = now.toISOString();
-    sub.currentPeriodStart = now.toISOString();
-    sub.currentPeriodEnd = periodEnd.toISOString();
-    sub.trialEndsAt = now.toISOString();
-    sub.updatedAt = now.toISOString();
+    sub.updatedAt = now;
+    if (wasTrial) this.trialConversions++;
 
-    this.createEvent(sub, 'trial_converted', prev, 'active', sub.tier, sub.tier);
-    logger.info('Trial converted to active', { subscriptionId, userId: sub.userId });
-    return sub;
+    this.recordEvent(subscriptionId, 'upgraded', {
+      from: currentPlan.id,
+      to: newPlanId,
+      proration,
+    });
+    logger.info('Subscription upgraded', { subscriptionId, from: currentPlan.id, to: newPlanId });
+    return { subscription: sub, proration };
   }
 
-  checkTrialExpiration(subscriptionId: string): boolean {
-    const sub = this.getOrThrow(subscriptionId);
-    if (sub.status !== 'trialing' || !sub.trialEndsAt) return false;
+  downgradeSubscription(
+    subscriptionId: string,
+    newPlanId: string,
+  ): { subscription: Subscription; proration: ProrationResult } {
+    const sub = this.requireSubscription(subscriptionId);
+    const currentPlan = this.requirePlan(sub.planId);
+    const newPlan = this.requirePlan(newPlanId);
 
-    if (new Date(sub.trialEndsAt) <= new Date()) {
-      sub.status = 'expired';
-      sub.expiredAt = new Date().toISOString();
-      sub.updatedAt = new Date().toISOString();
-      this.createEvent(sub, 'trial_expired', 'trialing', 'expired', sub.tier, sub.tier);
-      logger.info('Trial expired', { subscriptionId });
-      return true;
+    if (TIER_ORDER[newPlan.tier] >= TIER_ORDER[currentPlan.tier]) {
+      throw new Error('New plan must be a lower tier for downgrade');
     }
-    return false;
-  }
+    this.assertMutable(sub);
 
-  getTrialDaysRemaining(subscriptionId: string): number {
-    const sub = this.getOrThrow(subscriptionId);
-    if (sub.status !== 'trialing' || !sub.trialEndsAt) return 0;
-    const remaining = daysBetween(new Date(), new Date(sub.trialEndsAt));
-    return Math.max(0, Math.ceil(remaining));
-  }
-
-  // ---- grace period / payment failure -------------------------------------
-
-  handlePaymentFailure(subscriptionId: string): LifecycleSubscription {
-    const sub = this.getOrThrow(subscriptionId);
-    if (sub.status !== 'active' && sub.status !== 'past_due') {
-      throw new Error(`Cannot mark payment failed for status=${sub.status}`);
-    }
+    const totalDays = daysBetween(sub.currentPeriodStart, sub.currentPeriodEnd);
+    const daysRemaining = daysBetween(new Date(), sub.currentPeriodEnd);
+    const proration = this.calculateProration(sub.planId, newPlanId, daysRemaining, totalDays);
 
     const now = new Date();
-    const prevStatus = sub.status;
-    sub.status = 'past_due';
-    sub.gracePeriodEndsAt = addDays(now, this.config.gracePeriodDays).toISOString();
-    sub.updatedAt = now.toISOString();
+    sub.planId = newPlanId;
+    sub.updatedAt = now;
 
-    if (prevStatus === 'active') {
-      this.createEvent(sub, 'grace_period_started', 'active', 'past_due', sub.tier, sub.tier, {
-        gracePeriodEndsAt: sub.gracePeriodEndsAt,
-      });
+    this.recordEvent(subscriptionId, 'downgraded', {
+      from: currentPlan.id,
+      to: newPlanId,
+      proration,
+    });
+    logger.info('Subscription downgraded', { subscriptionId, from: currentPlan.id, to: newPlanId });
+    return { subscription: sub, proration };
+  }
+
+  // ── Cancel / Pause / Resume ──────────────────────────────────────────────
+
+  cancelSubscription(subscriptionId: string, immediate = false): Subscription {
+    const sub = this.requireSubscription(subscriptionId);
+    this.assertMutable(sub);
+
+    const wasTrial = sub.status === 'trialing';
+    const now = new Date();
+    if (immediate) {
+      sub.status = 'cancelled';
+      sub.cancelAt = now;
+      this.tenantIndex.delete(sub.tenantId);
+    } else {
+      sub.cancelAt = sub.currentPeriodEnd;
     }
-    this.createEvent(sub, 'payment_failed', prevStatus, 'past_due', sub.tier, sub.tier);
-    logger.warn('Payment failed, grace period started', { subscriptionId, gracePeriodEndsAt: sub.gracePeriodEndsAt });
+    sub.updatedAt = now;
+    this.cancelledCount++;
+    if (wasTrial) this.trialExpirations++;
+
+    this.recordEvent(subscriptionId, 'cancelled', { immediate });
+    logger.info('Subscription cancelled', { subscriptionId, immediate });
     return sub;
   }
 
-  checkGracePeriodExpiration(subscriptionId: string): boolean {
-    const sub = this.getOrThrow(subscriptionId);
-    if (sub.status !== 'past_due' || !sub.gracePeriodEndsAt) return false;
-
-    if (new Date(sub.gracePeriodEndsAt) <= new Date()) {
-      sub.status = 'cancelled';
-      sub.cancelledAt = new Date().toISOString();
-      sub.updatedAt = new Date().toISOString();
-      this.createEvent(sub, 'grace_period_ended', 'past_due', 'cancelled', sub.tier, sub.tier);
-      logger.info('Grace period expired, subscription cancelled', { subscriptionId });
-      return true;
-    }
-    return false;
-  }
-
-  // ---- pause / resume -----------------------------------------------------
-
-  pauseSubscription(subscriptionId: string): LifecycleSubscription {
-    const sub = this.getOrThrow(subscriptionId);
+  pauseSubscription(subscriptionId: string): Subscription {
+    const sub = this.requireSubscription(subscriptionId);
     if (sub.status !== 'active') {
-      throw new Error(`Cannot pause subscription with status=${sub.status}`);
+      throw new Error(`Cannot pause subscription in status: ${sub.status}`);
     }
 
     const now = new Date();
     sub.status = 'paused';
-    sub.pausedAt = now.toISOString();
-    sub.updatedAt = now.toISOString();
+    sub.pausedAt = now;
+    sub.updatedAt = now;
 
-    this.createEvent(sub, 'paused', 'active', 'paused', sub.tier, sub.tier, {
-      maxPauseDays: this.config.pauseMaxDurationDays,
-    });
+    this.recordEvent(subscriptionId, 'paused', {});
     logger.info('Subscription paused', { subscriptionId });
     return sub;
   }
 
-  resumeSubscription(subscriptionId: string): LifecycleSubscription {
-    const sub = this.getOrThrow(subscriptionId);
+  resumeSubscription(subscriptionId: string): Subscription {
+    const sub = this.requireSubscription(subscriptionId);
     if (sub.status !== 'paused') {
-      throw new Error(`Cannot resume subscription with status=${sub.status}`);
+      throw new Error(`Cannot resume subscription in status: ${sub.status}`);
     }
 
-    if (sub.pausedAt) {
-      const pausedDays = daysBetween(new Date(sub.pausedAt), new Date());
-      if (pausedDays > this.config.pauseMaxDurationDays) {
-        sub.status = 'cancelled';
-        sub.cancelledAt = new Date().toISOString();
-        sub.updatedAt = new Date().toISOString();
-        this.createEvent(sub, 'cancelled', 'paused', 'cancelled', sub.tier, sub.tier, {
-          reason: 'pause_duration_exceeded',
-        });
-        logger.warn('Pause duration exceeded, subscription cancelled', { subscriptionId, pausedDays });
-        return sub;
+    const now = new Date();
+    const pausedDays = sub.pausedAt ? daysBetween(sub.pausedAt, now) : 0;
+    sub.currentPeriodEnd = addDays(sub.currentPeriodEnd, pausedDays);
+    sub.status = 'active';
+    sub.pausedAt = undefined;
+    sub.updatedAt = now;
+
+    this.recordEvent(subscriptionId, 'resumed', { pausedDays });
+    logger.info('Subscription resumed', { subscriptionId, pausedDays });
+    return sub;
+  }
+
+  // ── Renewal ──────────────────────────────────────────────────────────────
+
+  renewSubscription(subscriptionId: string): Subscription {
+    const sub = this.requireSubscription(subscriptionId);
+    if (sub.status !== 'active' && sub.status !== 'past_due') {
+      throw new Error(`Cannot renew subscription in status: ${sub.status}`);
+    }
+
+    if (sub.cancelAt && sub.cancelAt <= sub.currentPeriodEnd) {
+      sub.status = 'cancelled';
+      sub.updatedAt = new Date();
+      this.tenantIndex.delete(sub.tenantId);
+      this.recordEvent(subscriptionId, 'cancelled', { reason: 'scheduled' });
+      logger.info('Subscription ended at scheduled cancel date', { subscriptionId });
+      return sub;
+    }
+
+    const now = new Date();
+    sub.currentPeriodStart = now;
+    sub.currentPeriodEnd = addDays(now, 30);
+    sub.status = 'active';
+    sub.updatedAt = now;
+    this.usage.set(subscriptionId, {});
+
+    this.recordEvent(subscriptionId, 'renewed', {});
+    logger.info('Subscription renewed', { subscriptionId });
+    return sub;
+  }
+
+  // ── Payment handling ─────────────────────────────────────────────────────
+
+  handlePaymentFailed(subscriptionId: string): Subscription {
+    const sub = this.requireSubscription(subscriptionId);
+    const now = new Date();
+
+    sub.status = 'past_due';
+    sub.updatedAt = now;
+    sub.metadata['gracePeriodEnd'] = addDays(now, GRACE_PERIOD_DAYS).toISOString();
+    sub.metadata['failedPayments'] = ((sub.metadata['failedPayments'] as number) || 0) + 1;
+
+    const failCount = sub.metadata['failedPayments'] as number;
+    if (failCount >= 3) {
+      sub.status = 'cancelled';
+      this.tenantIndex.delete(sub.tenantId);
+      this.cancelledCount++;
+      logger.warn('Subscription cancelled after 3 failed payments', { subscriptionId });
+    }
+
+    this.recordEvent(subscriptionId, 'payment_failed', { failCount });
+    logger.info('Payment failed', { subscriptionId, failCount });
+    return sub;
+  }
+
+  handlePaymentSucceeded(subscriptionId: string): Subscription {
+    const sub = this.requireSubscription(subscriptionId);
+    const now = new Date();
+
+    if (sub.status === 'past_due') {
+      sub.status = 'active';
+    }
+    sub.metadata['failedPayments'] = 0;
+    sub.metadata['gracePeriodEnd'] = undefined;
+    sub.updatedAt = now;
+
+    this.recordEvent(subscriptionId, 'payment_succeeded', {});
+    logger.info('Payment succeeded', { subscriptionId });
+    return sub;
+  }
+
+  // ── Usage & Limits ───────────────────────────────────────────────────────
+
+  checkLimits(
+    subscriptionId: string,
+    resource: keyof PlanLimits,
+    amount: number,
+  ): { allowed: boolean; remaining: number; limit: number } {
+    const sub = this.requireSubscription(subscriptionId);
+    const plan = this.requirePlan(sub.planId);
+    const limit = plan.limits[resource];
+    const consumed = this.usage.get(subscriptionId)?.[resource] ?? 0;
+    const remaining = Math.max(0, limit - consumed);
+    const allowed = consumed + amount <= limit;
+
+    if (allowed) {
+      const current = this.usage.get(subscriptionId) ?? {};
+      current[resource] = consumed + amount;
+      this.usage.set(subscriptionId, current);
+    } else {
+      logger.warn('Usage limit exceeded', { subscriptionId, resource, consumed, limit, requested: amount });
+    }
+
+    return { allowed, remaining: allowed ? remaining - amount : remaining, limit };
+  }
+
+  // ── Events ───────────────────────────────────────────────────────────────
+
+  getSubscriptionEvents(subscriptionId: string): SubscriptionEvent[] {
+    return this.events.get(subscriptionId) ?? [];
+  }
+
+  // ── Proration ────────────────────────────────────────────────────────────
+
+  calculateProration(
+    currentPlanId: string,
+    newPlanId: string,
+    daysRemaining: number,
+    totalDays: number,
+  ): ProrationResult {
+    const currentPlan = this.requirePlan(currentPlanId);
+    const newPlan = this.requirePlan(newPlanId);
+
+    if (totalDays <= 0) {
+      return { creditCents: 0, chargeCents: 0, netCents: 0, description: 'No proration needed' };
+    }
+
+    const fraction = daysRemaining / totalDays;
+    const creditCents = Math.round(currentPlan.monthlyPriceCents * fraction);
+    const chargeCents = Math.round(newPlan.monthlyPriceCents * fraction);
+    const netCents = chargeCents - creditCents;
+
+    const description =
+      netCents > 0
+        ? `Charge ${netCents} cents: ${daysRemaining}/${totalDays} days remaining, upgrading from ${currentPlan.name} to ${newPlan.name}`
+        : netCents < 0
+          ? `Credit ${Math.abs(netCents)} cents: ${daysRemaining}/${totalDays} days remaining, downgrading from ${currentPlan.name} to ${newPlan.name}`
+          : `No charge: plans are equivalent for remaining period`;
+
+    return { creditCents, chargeCents, netCents, description };
+  }
+
+  // ── Revenue metrics ──────────────────────────────────────────────────────
+
+  getRevenueMetrics(): RevenueMetrics {
+    let mrr = 0;
+    const planDistribution: Record<string, number> = {};
+    let activeCount = 0;
+
+    for (const sub of this.subscriptions.values()) {
+      const isActive = sub.status === 'active' || sub.status === 'trialing' || sub.status === 'past_due';
+      if (!isActive) continue;
+
+      activeCount++;
+      const plan = this.plans.get(sub.planId);
+      if (plan) {
+        mrr += plan.monthlyPriceCents;
+        planDistribution[plan.id] = (planDistribution[plan.id] ?? 0) + 1;
       }
     }
 
-    const now = new Date();
-    const periodEnd = addDays(now, 30);
-    sub.status = 'active';
-    sub.resumedAt = now.toISOString();
-    sub.currentPeriodStart = now.toISOString();
-    sub.currentPeriodEnd = periodEnd.toISOString();
-    sub.pausedAt = null;
-    sub.updatedAt = now.toISOString();
-
-    this.createEvent(sub, 'resumed', 'paused', 'active', sub.tier, sub.tier);
-    logger.info('Subscription resumed', { subscriptionId });
-    return sub;
-  }
-
-  // ---- plan changes (upgrade / downgrade) ---------------------------------
-
-  changePlan(subscriptionId: string, newTier: SubscriptionTier): PlanChangeResult {
-    const sub = this.getOrThrow(subscriptionId);
-    if (sub.status !== 'active' && sub.status !== 'trialing') {
-      throw new Error(`Cannot change plan for status=${sub.status}`);
-    }
-
-    const oldTier = sub.tier;
-    if (oldTier === newTier) {
-      throw new Error(`Subscription is already on the ${newTier} tier`);
-    }
-
-    const now = new Date();
-    const periodEnd = new Date(sub.currentPeriodEnd);
-    const periodStart = new Date(sub.currentPeriodStart);
-    const totalDays = Math.max(1, daysBetween(periodStart, periodEnd));
-    const remainingDays = Math.max(0, daysBetween(now, periodEnd));
-    const fraction = remainingDays / totalDays;
-
-    const oldPrice = this.tierPrice(oldTier);
-    const newPrice = this.tierPrice(newTier);
-    const creditAmount = parseFloat((oldPrice * fraction).toFixed(2));
-    const chargeAmount = parseFloat((newPrice * fraction).toFixed(2));
-    const proratedAmount = parseFloat((chargeAmount - creditAmount).toFixed(2));
-
-    const isUpgrade = newPrice > oldPrice;
-    const eventType: LifecycleEventType = isUpgrade ? 'upgraded' : 'downgraded';
-
-    sub.previousTier = oldTier;
-    sub.tier = newTier;
-    sub.updatedAt = now.toISOString();
-
-    this.createEvent(sub, eventType, sub.status, sub.status, oldTier, newTier, {
-      proratedAmount,
-      creditAmount,
-      chargeAmount,
-    });
-
-    logger.info('Plan changed', { subscriptionId, oldTier, newTier, proratedAmount });
+    const mrrDollars = mrr / 100;
+    const arr = mrrDollars * 12;
+    const totalTrialOutcomes = this.trialConversions + this.trialExpirations;
+    const trialConversionRate = totalTrialOutcomes > 0 ? this.trialConversions / totalTrialOutcomes : 0;
+    const churnRate = this.totalEverCreated > 0 ? this.cancelledCount / this.totalEverCreated : 0;
+    const avgRevenuePerUser = activeCount > 0 ? mrrDollars / activeCount : 0;
 
     return {
-      subscription: sub,
-      proratedAmount,
-      creditAmount,
-      chargeAmount,
-      effectiveDate: now.toISOString(),
+      mrr: mrrDollars,
+      arr,
+      totalSubscriptions: activeCount,
+      trialConversionRate,
+      churnRate,
+      avgRevenuePerUser,
+      planDistribution,
     };
   }
 
-  // ---- renewal processing -------------------------------------------------
+  // ── Batch processors ─────────────────────────────────────────────────────
 
-  processRenewal(subscriptionId: string, paymentSucceeded: boolean): RenewalResult {
-    const sub = this.getOrThrow(subscriptionId);
-    if (sub.status !== 'active' && sub.status !== 'past_due') {
-      throw new Error(`Cannot renew subscription with status=${sub.status}`);
-    }
-
+  processTrialExpirations(): number {
     const now = new Date();
-    sub.renewalAttempts += 1;
-    sub.lastRenewalAttemptAt = now.toISOString();
-    sub.updatedAt = now.toISOString();
+    let count = 0;
 
-    if (paymentSucceeded) {
-      const periodEnd = addDays(now, 30);
-      const prevStatus = sub.status;
+    for (const sub of this.subscriptions.values()) {
+      if (sub.status !== 'trialing') continue;
+      if (!sub.trialEnd || sub.trialEnd > now) continue;
+
       sub.status = 'active';
-      sub.currentPeriodStart = now.toISOString();
-      sub.currentPeriodEnd = periodEnd.toISOString();
-      sub.gracePeriodEndsAt = null;
-      sub.renewalAttempts = 0;
+      sub.trialEnd = undefined;
+      sub.currentPeriodStart = now;
+      sub.currentPeriodEnd = addDays(now, 30);
+      sub.updatedAt = now;
+      this.trialConversions++;
+      count++;
 
-      this.createEvent(sub, 'renewed', prevStatus, 'active', sub.tier, sub.tier);
-      logger.info('Subscription renewed', { subscriptionId });
-      return { success: true, subscription: sub, attemptNumber: sub.renewalAttempts, nextRetryAt: null, error: null };
+      this.recordEvent(sub.id, 'trial_ended', { converted: true });
+      this.recordEvent(sub.id, 'activated', { from: 'trial' });
+      logger.info('Trial converted to active', { subscriptionId: sub.id });
     }
 
-    // Payment failed
-    if (sub.renewalAttempts >= this.config.maxRenewalAttempts) {
-      sub.status = 'cancelled';
-      sub.cancelledAt = now.toISOString();
-      this.createEvent(sub, 'cancelled', 'past_due', 'cancelled', sub.tier, sub.tier, {
-        reason: 'max_renewal_attempts_exceeded',
-      });
-      logger.warn('Max renewal attempts exceeded, subscription cancelled', { subscriptionId });
-      return {
-        success: false,
-        subscription: sub,
-        attemptNumber: sub.renewalAttempts,
-        nextRetryAt: null,
-        error: 'Max renewal attempts exceeded',
-      };
+    if (count > 0) {
+      logger.info('Processed trial expirations', { converted: count });
     }
-
-    if (sub.status === 'active') {
-      sub.status = 'past_due';
-      sub.gracePeriodEndsAt = addDays(now, this.config.gracePeriodDays).toISOString();
-    }
-
-    const nextRetry = addHours(now, this.config.renewalRetryIntervalHours);
-    this.createEvent(sub, 'renewal_retry', sub.status, sub.status, sub.tier, sub.tier, {
-      attempt: sub.renewalAttempts,
-      nextRetryAt: nextRetry.toISOString(),
-    });
-
-    logger.info('Renewal failed, retry scheduled', {
-      subscriptionId,
-      attempt: sub.renewalAttempts,
-      nextRetryAt: nextRetry.toISOString(),
-    });
-
-    return {
-      success: false,
-      subscription: sub,
-      attemptNumber: sub.renewalAttempts,
-      nextRetryAt: nextRetry.toISOString(),
-      error: 'Payment failed',
-    };
+    return count;
   }
 
-  // ---- cancel / expire ----------------------------------------------------
-
-  cancelSubscription(subscriptionId: string, immediate = false): LifecycleSubscription {
-    const sub = this.getOrThrow(subscriptionId);
-    if (sub.status === 'cancelled' || sub.status === 'expired') {
-      throw new Error(`Subscription already ${sub.status}`);
-    }
-
+  processRenewals(): number {
     const now = new Date();
-    const prevStatus = sub.status;
+    let count = 0;
 
-    if (immediate) {
-      sub.status = 'cancelled';
-      sub.cancelledAt = now.toISOString();
-    } else {
-      sub.cancelledAt = sub.currentPeriodEnd;
+    for (const sub of this.subscriptions.values()) {
+      if (sub.status !== 'active') continue;
+      if (sub.currentPeriodEnd > now) continue;
+
+      if (sub.cancelAt && sub.cancelAt <= now) {
+        sub.status = 'cancelled';
+        sub.updatedAt = now;
+        this.tenantIndex.delete(sub.tenantId);
+        this.cancelledCount++;
+        this.recordEvent(sub.id, 'cancelled', { reason: 'period_end' });
+        logger.info('Subscription expired at cancel date', { subscriptionId: sub.id });
+        continue;
+      }
+
+      sub.currentPeriodStart = now;
+      sub.currentPeriodEnd = addDays(now, 30);
+      sub.updatedAt = now;
+      this.usage.set(sub.id, {});
+      count++;
+
+      this.recordEvent(sub.id, 'renewed', { auto: true });
     }
-    sub.updatedAt = now.toISOString();
 
-    this.createEvent(sub, 'cancelled', prevStatus, immediate ? 'cancelled' : prevStatus, sub.tier, sub.tier, {
-      immediate,
-      effectiveDate: sub.cancelledAt,
-    });
-    logger.info('Subscription cancelled', { subscriptionId, immediate, effectiveDate: sub.cancelledAt });
-    return sub;
-  }
-
-  expireSubscription(subscriptionId: string): LifecycleSubscription {
-    const sub = this.getOrThrow(subscriptionId);
-    const now = new Date();
-    const prevStatus = sub.status;
-    sub.status = 'expired';
-    sub.expiredAt = now.toISOString();
-    sub.updatedAt = now.toISOString();
-    this.createEvent(sub, 'expired', prevStatus, 'expired', sub.tier, null);
-    logger.info('Subscription expired', { subscriptionId });
-    return sub;
-  }
-
-  // ---- queries ------------------------------------------------------------
-
-  getSubscription(subscriptionId: string): LifecycleSubscription | undefined {
-    return this.subscriptions.get(subscriptionId);
-  }
-
-  getSubscriptionsByUser(userId: string): LifecycleSubscription[] {
-    return [...this.subscriptions.values()].filter((s) => s.userId === userId);
-  }
-
-  getSubscriptionsByStatus(status: LifecycleStatus): LifecycleSubscription[] {
-    return [...this.subscriptions.values()].filter((s) => s.status === status);
-  }
-
-  getEventsForSubscription(subscriptionId: string): LifecycleEvent[] {
-    return this.events.filter((e) => e.subscriptionId === subscriptionId);
-  }
-
-  getConversionRate(): number {
-    const trials = this.events.filter((e) => e.type === 'trial_started').length;
-    const conversions = this.events.filter((e) => e.type === 'trial_converted').length;
-    return trials === 0 ? 0 : parseFloat((conversions / trials).toFixed(4));
-  }
-
-  getRevenueImpactSummary(): Record<LifecycleEventType, number> {
-    const summary = {} as Record<LifecycleEventType, number>;
-    for (const evt of this.events) {
-      summary[evt.type] = (summary[evt.type] || 0) + evt.revenueImpact;
+    if (count > 0) {
+      logger.info('Processed renewals', { renewed: count });
     }
-    return summary;
+    return count;
   }
 
-  getActiveSubscriptionCount(): number {
-    return [...this.subscriptions.values()].filter((s) => s.status === 'active').length;
-  }
+  // ── Private helpers ──────────────────────────────────────────────────────
 
-  // ---- internals ----------------------------------------------------------
-
-  private getOrThrow(id: string): LifecycleSubscription {
+  private requireSubscription(id: string): Subscription {
     const sub = this.subscriptions.get(id);
     if (!sub) throw new Error(`Subscription not found: ${id}`);
     return sub;
   }
+
+  private requirePlan(id: string): SubscriptionPlan {
+    const plan = this.plans.get(id);
+    if (!plan) throw new Error(`Plan not found: ${id}`);
+    return plan;
+  }
+
+  private assertMutable(sub: Subscription): void {
+    if (sub.status === 'cancelled' || sub.status === 'expired') {
+      throw new Error(`Cannot modify subscription in status: ${sub.status}`);
+    }
+  }
+
+  private recordEvent(subscriptionId: string, type: SubscriptionEventType, data: Record<string, unknown>): void {
+    const event: SubscriptionEvent = {
+      id: generateId('evt'),
+      subscriptionId,
+      type,
+      data,
+      timestamp: new Date(),
+    };
+    const list = this.events.get(subscriptionId) ?? [];
+    list.push(event);
+    this.events.set(subscriptionId, list);
+  }
 }
 
-// ---------------------------------------------------------------------------
-// Singleton
-// ---------------------------------------------------------------------------
+// ── Singleton ────────────────────────────────────────────────────────────────
 
-const GLOBAL_KEY = '__subscriptionLifecycleManager__';
+declare global {
+  var __subscriptionLifecycleManager__: SubscriptionLifecycleManager | undefined;
+}
 
-export function getSubscriptionLifecycleManager(
-  config?: Partial<LifecycleConfig>,
-): SubscriptionLifecycleManager {
-  const g = globalThis as unknown as Record<string, SubscriptionLifecycleManager>;
-  if (!g[GLOBAL_KEY]) {
-    g[GLOBAL_KEY] = new SubscriptionLifecycleManager(config);
+export function getSubscriptionManager(): SubscriptionLifecycleManager {
+  if (!globalThis.__subscriptionLifecycleManager__) {
+    globalThis.__subscriptionLifecycleManager__ = new SubscriptionLifecycleManager();
   }
-  return g[GLOBAL_KEY];
+  return globalThis.__subscriptionLifecycleManager__;
 }
