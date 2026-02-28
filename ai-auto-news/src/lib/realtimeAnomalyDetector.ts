@@ -87,6 +87,7 @@ export interface AnomalyEvent {
   tags: Record<string, string>;
   deduplicated: boolean;
   alertSent: boolean;
+  isAnomaly?: boolean;
 }
 
 export interface AnomalyAlert {

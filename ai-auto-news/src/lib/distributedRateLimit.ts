@@ -159,4 +159,5 @@ export function getDistributedRateLimiter(): DistributedRateLimiter {
   return rateLimiterInstance;
 }
 
-export { DistributedRateLimiter, RateLimitResult };
+export { DistributedRateLimiter };
+export type { RateLimitResult };

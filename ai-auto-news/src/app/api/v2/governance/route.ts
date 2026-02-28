@@ -165,7 +165,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const cacheKey = `api:v2:governance:get:${JSON.stringify(params)}`;
     const cached = await cache.get<GovernanceOverviewResponse>(cacheKey);
     if (cached) {
-      logger.debug({ view: params.view, assetId: params.assetId }, 'Returning cached governance data');
+      logger.debug('Returning cached governance data', { view: params.view, assetId: params.assetId });
       return NextResponse.json(cached, {
         headers: { 'X-Cache': 'HIT', 'X-Response-Time': `${Date.now() - startMs}ms` },
       });
@@ -287,13 +287,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     };
 
     await cache.set(cacheKey, response, 600); // cache for 10 minutes
-    logger.info({ view: params.view, totalAssets: stats.totalAssets, durationMs: Date.now() - startMs }, 'Governance GET complete');
+    logger.info('Governance GET complete', { view: params.view, totalAssets: stats.totalAssets, durationMs: Date.now() - startMs });
 
     return NextResponse.json(response, {
       headers: { 'X-Cache': 'MISS', 'X-Response-Time': `${Date.now() - startMs}ms` },
     });
   } catch (error) {
-    logger.error({ error, durationMs: Date.now() - startMs }, 'Governance GET error');
+    logger.error('Governance GET error', undefined, { error, durationMs: Date.now() - startMs });
     return NextResponse.json(
       { success: false, error: 'Failed to retrieve governance data', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 },
@@ -441,14 +441,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       registeredAt: now.toISOString(),
     };
 
-    logger.info({ assetId, name: body.name, type: body.type, piiDetected: piiFields.length > 0, durationMs: Date.now() - startMs }, 'Data asset registered');
+    logger.info('Data asset registered', { assetId, name: body.name, type: body.type, piiDetected: piiFields.length > 0, durationMs: Date.now() - startMs });
 
     return NextResponse.json(response, {
       status: 201,
       headers: { 'X-Response-Time': `${Date.now() - startMs}ms` },
     });
   } catch (error) {
-    logger.error({ error, durationMs: Date.now() - startMs }, 'Governance POST error');
+    logger.error('Governance POST error', undefined, { error, durationMs: Date.now() - startMs });
     return NextResponse.json(
       { success: false, error: 'Failed to register data asset', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 },

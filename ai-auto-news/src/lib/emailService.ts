@@ -391,4 +391,4 @@ export function getEmailService(): EmailService {
   return emailServiceInstance;
 }
 
-export { EmailTemplate, EmailOptions, BulkEmailJob };
+export type { EmailTemplate, EmailOptions, BulkEmailJob };

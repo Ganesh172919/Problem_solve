@@ -227,7 +227,7 @@ export function enqueuePurge(
   if (!purgeFlushTimer) {
     purgeFlushTimer = setTimeout(() => {
       flushPurgeQueue().catch((err) =>
-        logger.error('Purge queue flush error', { error: err }),
+        logger.error('Purge queue flush error', undefined, { error: err }),
       );
       purgeFlushTimer = null;
     }, 500);
@@ -253,7 +253,7 @@ async function flushPurgeQueue(): Promise<void> {
       logger.info('Cache purge completed', { id: req.id, affectedKeys: req.affectedKeys });
     } catch (err) {
       req.status = 'failed';
-      logger.error('Cache purge failed', { id: req.id, error: err });
+      logger.error('Cache purge failed', undefined, { id: req.id, error: err });
     }
   }
 }

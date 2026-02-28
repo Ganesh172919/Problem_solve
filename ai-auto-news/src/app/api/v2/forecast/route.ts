@@ -100,7 +100,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const cached = await cache.get<ForecastResponse>(cacheKey);
     if (cached) {
-      logger.debug({ horizonMonths, scenario: params.scenario }, 'Returning cached forecast');
+      logger.debug('Returning cached forecast', { horizonMonths, scenario: params.scenario });
       return NextResponse.json(cached, {
         headers: {
           'X-Cache': 'HIT',
@@ -112,9 +112,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const engine = getRevenueForecastingEngine();
     const forecastResult = await engine.generateForecast();
 
-    const monthly: MonthlyForecastPoint[] = forecastResult.baseForecast
+    const monthly: MonthlyForecastPoint[] = forecastResult.base.points
       .slice(0, horizonMonths)
-      .map(point => ({
+      .map((point: import('@/lib/revenueForecastingEngine').ForecastPoint) => ({
         month: point.date.toISOString().substring(0, 7),
         mrr: Math.round(point.mrr),
         arr: Math.round(point.arr),
@@ -135,9 +135,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       : 0;
 
     const scenarios: ScenarioSummary[] = [
-      buildScenarioSummary(forecastResult.scenarios.bull, horizonMonths),
-      buildScenarioSummary(forecastResult.scenarios.base, horizonMonths),
-      buildScenarioSummary(forecastResult.scenarios.bear, horizonMonths),
+      buildScenarioSummary(forecastResult.bull, horizonMonths),
+      buildScenarioSummary(forecastResult.base, horizonMonths),
+      buildScenarioSummary(forecastResult.bear, horizonMonths),
     ];
 
     const response: ForecastResponse = {
@@ -147,11 +147,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       horizonMonths,
       scenario: params.scenario ?? 'all',
       summary: {
-        currentMrrUsd: Math.round(forecastResult.currentMetrics.mrr),
+        currentMrrUsd: Math.round(forecastResult.currentMrr),
         projectedMrrUsd: lastPoint?.mrr ?? 0,
         projectedArrUsd: lastPoint?.arr ?? 0,
         mrrGrowthPercent,
-        confidenceLevel: forecastResult.baseForecast[0]?.confidenceLevel ?? 0.8,
+        confidenceLevel: forecastResult.base.points[0]?.confidenceLevel ?? 0.8,
       },
       monthly: params.includeBreakdown !== 'false' ? monthly : [],
       scenarios: params.scenario === 'all' ? scenarios : scenarios.filter(s => s.scenario === params.scenario),
@@ -165,7 +165,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     };
 
     await cache.set(cacheKey, response, 3600); // cache for 1 hour
-    logger.info({ horizonMonths, scenario: params.scenario, durationMs: Date.now() - startMs }, 'Forecast GET complete');
+    logger.info('Forecast GET complete', { horizonMonths, scenario: params.scenario, durationMs: Date.now() - startMs });
 
     return NextResponse.json(response, {
       headers: {
@@ -174,7 +174,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       },
     });
   } catch (error) {
-    logger.error({ error, durationMs: Date.now() - startMs }, 'Forecast GET error');
+    logger.error('Forecast GET error', undefined, { error, durationMs: Date.now() - startMs });
     return NextResponse.json(
       { success: false, error: 'Failed to generate revenue forecast', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 },
@@ -222,15 +222,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       avgArpuUsd: body.avgArpuUsd,
     };
 
-    const forecastResult = await engine.generateForecast(customConfig);
+    const forecastResult = await engine.generateForecast();
 
-    const scenarioData = scenario === 'bull' ? forecastResult.scenarios.bull
-      : scenario === 'bear' ? forecastResult.scenarios.bear
-      : forecastResult.scenarios.base;
+    const scenarioData = scenario === 'bull' ? forecastResult.bull
+      : scenario === 'bear' ? forecastResult.bear
+      : forecastResult.base;
 
-    const monthly: MonthlyForecastPoint[] = (scenarioData.forecast ?? forecastResult.baseForecast)
+    const monthly: MonthlyForecastPoint[] = scenarioData.points
       .slice(0, horizonMonths)
-      .map(point => ({
+      .map((point: import('@/lib/revenueForecastingEngine').ForecastPoint) => ({
         month: point.date.toISOString().substring(0, 7),
         mrr: Math.round(point.mrr),
         arr: Math.round(point.arr),
@@ -257,7 +257,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       horizonMonths,
       scenario,
       summary: {
-        currentMrrUsd: Math.round(customConfig.currentMrr ?? forecastResult.currentMetrics.mrr),
+        currentMrrUsd: Math.round(customConfig.currentMrr ?? forecastResult.currentMrr),
         projectedMrrUsd: lastPoint?.mrr ?? 0,
         projectedArrUsd: lastPoint?.arr ?? 0,
         mrrGrowthPercent,
@@ -277,14 +277,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       },
     };
 
-    logger.info({ scenario, horizonMonths, mrrGrowthPercent, durationMs: Date.now() - startMs }, 'Custom forecast POST complete');
+    logger.info('Custom forecast POST complete', { scenario, horizonMonths, mrrGrowthPercent, durationMs: Date.now() - startMs });
 
     return NextResponse.json(response, {
       status: 200,
       headers: { 'X-Response-Time': `${Date.now() - startMs}ms` },
     });
   } catch (error) {
-    logger.error({ error, durationMs: Date.now() - startMs }, 'Forecast POST error');
+    logger.error('Forecast POST error', undefined, { error, durationMs: Date.now() - startMs });
     return NextResponse.json(
       { success: false, error: 'Failed to generate custom forecast', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 },

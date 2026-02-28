@@ -308,7 +308,7 @@ async function executeTask(task: ScheduledTask, scheduledFor: Date, attempt = 1)
     task.lastRunAt = new Date();
     task.nextRunAt = nextCronRun(task.cronExpression, new Date());
 
-    logger.error('Task execution error', { taskId: task.id, attempt, error: err });
+    logger.error('Task execution error', undefined, { taskId: task.id, attempt, error: err });
 
     if (attempt < task.options.retryAttempts) {
       const delay = task.options.retryDelayMs * attempt;
@@ -349,7 +349,7 @@ async function tickScheduler(): Promise<void> {
 
     // Execute asynchronously
     executeTask(task, scheduledFor).catch((err) =>
-      logger.error('Unhandled task error', { taskId: task.id, error: err }),
+      logger.error('Unhandled task error', undefined, { taskId: task.id, error: err }),
     );
   }
 }
@@ -357,7 +357,7 @@ async function tickScheduler(): Promise<void> {
 export function startScheduler(intervalMs = 60000): void {
   if (schedulerTimer) return;
   schedulerTimer = setInterval(() => {
-    tickScheduler().catch((err) => logger.error('Scheduler tick error', { error: err }));
+    tickScheduler().catch((err) => logger.error('Scheduler tick error', undefined, { error: err }));
   }, intervalMs);
   logger.info('Scheduler started', { intervalMs, nodeId: NODE_ID });
 }

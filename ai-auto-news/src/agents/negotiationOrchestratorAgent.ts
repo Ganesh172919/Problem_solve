@@ -6,7 +6,7 @@
  * reports negotiation outcomes and economic summaries.
  */
 
-import { getLogger } from './logger';
+import { getLogger } from '../lib/logger';
 import { getNegotiationEngine } from '../lib/multiAgentNegotiationEngine';
 
 const logger = getLogger();

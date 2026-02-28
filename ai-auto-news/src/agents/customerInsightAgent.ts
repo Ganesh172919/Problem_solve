@@ -237,11 +237,11 @@ export class CustomerInsightAgent {
     const cacheKey = `insight:behavior:${userId}`;
     const cached = await cache.get<BehaviorPattern>(cacheKey);
     if (cached) {
-      logger.debug({ userId }, 'Returning cached behavior pattern');
+      logger.debug('Returning cached behavior pattern', { userId });
       return cached;
     }
 
-    logger.info({ userId, eventCount: events.length }, 'Analyzing user behavior');
+    logger.info('Analyzing user behavior', { userId, eventCount: events.length });
 
     const sessionMap = new Map<string, BehaviorEvent[]>();
     for (const e of events) {
@@ -333,7 +333,7 @@ export class CustomerInsightAgent {
     };
 
     await cache.set(cacheKey, pattern, this.CACHE_TTL);
-    logger.info({ userId, adoptionScore, streakDays }, 'Behavior analysis complete');
+    logger.info('Behavior analysis complete', { userId, adoptionScore, streakDays });
     return pattern;
   }
 
@@ -347,7 +347,7 @@ export class CustomerInsightAgent {
     const cached = await cache.get<CustomerPersona>(cacheKey);
     if (cached) return cached;
 
-    logger.info({ patternCount: patterns.length, segment }, 'Generating customer persona');
+    logger.info('Generating customer persona', { patternCount: patterns.length, segment });
 
     const avgAdoption = patterns.reduce((s, p) => s + p.adoptionScore, 0) / Math.max(patterns.length, 1);
     const avgSessionFreq = patterns.reduce((s, p) => s + p.sessionFrequencyPerWeek, 0) / Math.max(patterns.length, 1);
@@ -516,7 +516,7 @@ export class CustomerInsightAgent {
     };
 
     await cache.set(cacheKey, persona, this.CACHE_TTL * 4);
-    logger.info({ segment, userCount: patterns.length, personaName: persona.name }, 'Persona generated');
+    logger.info('Persona generated', { segment, userCount: patterns.length, personaName: persona.name });
     return persona;
   }
 
@@ -530,7 +530,7 @@ export class CustomerInsightAgent {
     const cached = await cache.get<CustomerJourneyMap>(cacheKey);
     if (cached) return cached;
 
-    logger.info({ segment }, 'Mapping customer journey');
+    logger.info('Mapping customer journey', { segment });
 
     const stages: JourneyStep[] = [
       {
@@ -629,7 +629,7 @@ export class CustomerInsightAgent {
     };
 
     await cache.set(cacheKey, journeyMap, this.CACHE_TTL * 2);
-    logger.info({ segment, stages: stages.length, criticalDropOff: criticalStep.stage }, 'Journey mapped');
+    logger.info('Journey mapped', { segment, stages: stages.length, criticalDropOff: criticalStep.stage });
     return journeyMap;
   }
 
@@ -644,7 +644,7 @@ export class CustomerInsightAgent {
     const cached = await cache.get<ConversionFunnelAnalysis>(cacheKey);
     if (cached) return cached;
 
-    logger.info({ funnelName }, 'Analyzing conversion funnel');
+    logger.info('Analyzing conversion funnel', { funnelName });
 
     const stages: FunnelStage[] = rawStageCounts.map((s, idx) => {
       const prevCount = idx === 0 ? s.count : rawStageCounts[idx - 1].count;
@@ -698,7 +698,7 @@ export class CustomerInsightAgent {
     };
 
     await cache.set(cacheKey, analysis, this.CACHE_TTL);
-    logger.info({ funnelName, overallConversionRate, bottleneck: bottleneck.name }, 'Funnel analysis complete');
+    logger.info('Funnel analysis complete', { funnelName, overallConversionRate, bottleneck: bottleneck.name });
     return analysis;
   }
 
@@ -709,7 +709,7 @@ export class CustomerInsightAgent {
     config: InsightConfig = {},
   ): Promise<InsightReport> {
     const reportId = uuidv4();
-    logger.info({ patternCount: patterns.length }, 'Generating customer insight report');
+    logger.info('Generating customer insight report', { patternCount: patterns.length });
 
     const segments: SegmentLabel[] = ['power-user', 'casual-user', 'at-risk', 'new-user', 'expansion-candidate'];
     const segmentBuckets = new Map<SegmentLabel, BehaviorPattern[]>();
@@ -774,7 +774,7 @@ export class CustomerInsightAgent {
       generatedAt: new Date(),
     };
 
-    logger.info({ reportId, personaCount: personas.length, churnSignals: churnSignals.length }, 'Insight report generated');
+    logger.info('Insight report generated', { reportId, personaCount: personas.length, churnSignals: churnSignals.length });
     return report;
   }
 
@@ -789,7 +789,7 @@ export class CustomerInsightAgent {
     const cached = await cache.get<PersonalizationRecommendation>(cacheKey);
     if (cached) return cached;
 
-    logger.info({ userId, segment: persona.segment }, 'Generating personalization recommendations');
+    logger.info('Generating personalization recommendations', { userId, segment: persona.segment });
 
     const recs: PersonalizationRecommendation['recommendations'] = [];
 
@@ -872,7 +872,7 @@ export class CustomerInsightAgent {
     };
 
     await cache.set(cacheKey, recommendation, 3600);
-    logger.info({ userId, recCount: recs.length }, 'Personalization recs generated');
+    logger.info('Personalization recs generated', { userId, recCount: recs.length });
     return recommendation;
   }
 

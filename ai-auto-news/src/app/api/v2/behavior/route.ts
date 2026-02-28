@@ -29,7 +29,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     cache.set(cacheKey, data, 60);
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
-    logger.error('Behavior GET error', { error });
+    logger.error('Behavior GET error', undefined, { error });
     return NextResponse.json({ error: 'Failed to retrieve behavior analytics' }, { status: 500 });
   }
 }
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(tracked, { status: 202 });
   } catch (error) {
-    logger.error('Behavior POST error', { error });
+    logger.error('Behavior POST error', undefined, { error });
     return NextResponse.json({ error: 'Failed to track behavior events' }, { status: 500 });
   }
 }

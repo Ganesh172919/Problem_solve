@@ -380,7 +380,7 @@ export async function deploy(
     // Ensure lock is released on failure
     releaseDeploymentLock(config.environment);
 
-    logger.error('Deployment failed', {
+    logger.error('Deployment failed', undefined, {
       id: deploymentId,
       error: err,
       failedStep: deployment.steps.find((s) => s.status === 'failed')?.name,

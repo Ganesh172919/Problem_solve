@@ -10,7 +10,7 @@ interface Plugin {
   category: string;
   tags: string[];
   price: number;
-  pricing Model: 'free' | 'one-time' | 'subscription' | 'usage-based';
+  pricingModel: 'free' | 'one-time' | 'subscription' | 'usage-based';
   downloads: number;
   rating: number;
   ratingCount: number;
@@ -465,4 +465,4 @@ export function getPluginMarketplace(): PluginMarketplace {
   return marketplaceInstance;
 }
 
-export { Plugin, PluginManifest, PluginInstallation, PluginReview };
+export type { Plugin, PluginManifest, PluginInstallation, PluginReview };

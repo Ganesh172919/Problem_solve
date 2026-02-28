@@ -398,4 +398,4 @@ export function getABTestingFramework(): ABTestingFramework {
   return abTestingInstance;
 }
 
-export { ABTest, ABVariant, ABMetrics, ABEvent };
+export type { ABTest, ABVariant, ABMetrics, ABEvent };

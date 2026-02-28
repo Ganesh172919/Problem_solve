@@ -446,4 +446,4 @@ export function getCostOptimizationEngine(): CostOptimizationEngine {
   return costEngineInstance;
 }
 
-export { CostMetrics, CostAlert, OptimizationRecommendation, ResourceUsage };
+export type { CostMetrics, CostAlert, OptimizationRecommendation, ResourceUsage };

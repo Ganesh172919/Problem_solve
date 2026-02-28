@@ -420,7 +420,7 @@ export function reportDataBreach(params: {
     // GDPR Article 33: notify authority within 72 hours
     const notifyBy = new Date(breach.detectedAt);
     notifyBy.setHours(notifyBy.getHours() + 72);
-    logger.error('DATA BREACH DETECTED — authority notification required by', {
+    logger.error('DATA BREACH DETECTED — authority notification required by', undefined, {
       id: breach.id,
       severity: params.severity,
       affectedUserCount: params.affectedUserCount,

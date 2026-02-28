@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Unknown action. Use: metrics' }, { status: 400 });
     }
   } catch (error) {
-    logger.error('Quantum GET failed', { error });
+    logger.error('Quantum GET failed', undefined, { error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
@@ -206,7 +206,7 @@ export async function POST(request: NextRequest) {
         );
     }
   } catch (error) {
-    logger.error('Quantum operation failed', { action, algorithm, error });
+    logger.error('Quantum operation failed', undefined, { action, algorithm, error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }

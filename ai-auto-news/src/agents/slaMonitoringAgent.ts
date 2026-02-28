@@ -5,7 +5,7 @@
  * critical violations, and generates compliance reports for all active tenants.
  */
 
-import { getLogger } from './logger';
+import { getLogger } from '../lib/logger';
 import { getSLAManager, type SLADefinition, type SLAStatus } from '../lib/intelligentSLAManager';
 
 const logger = getLogger();

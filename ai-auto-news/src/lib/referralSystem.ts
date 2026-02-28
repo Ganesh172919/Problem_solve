@@ -382,4 +382,4 @@ export function getReferralSystem(): ReferralSystem {
   return referralSystemInstance;
 }
 
-export { ReferralProgram, Referral, ReferralStats };
+export type { ReferralProgram, Referral, ReferralStats };

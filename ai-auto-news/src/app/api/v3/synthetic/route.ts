@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('Failed to list synthetic datasets', { error });
+    logger.error('Failed to list synthetic datasets', undefined, { error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('Failed to generate synthetic dataset', { tenantId, error });
+    logger.error('Failed to generate synthetic dataset', undefined, { tenantId, error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }

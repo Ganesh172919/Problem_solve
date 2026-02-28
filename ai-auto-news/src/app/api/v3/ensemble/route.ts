@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('Failed to retrieve ensemble metrics', { taskType, error });
+    logger.error('Failed to retrieve ensemble metrics', undefined, { taskType, error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 },
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('Ensemble inference failed', { taskType, error });
+    logger.error('Ensemble inference failed', undefined, { taskType, error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 },

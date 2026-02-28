@@ -193,7 +193,7 @@ export function emitAlert(
   if (alertStore.length > MAX_ALERTS) alertStore.length = MAX_ALERTS;
 
   if (severity === 'critical' || severity === 'error') {
-    logger.error(`[DASHBOARD ALERT] ${title}`, { severity, source, message });
+    logger.error(`[DASHBOARD ALERT] ${title}`, undefined, { severity, source, message });
   } else {
     logger.warn(`[DASHBOARD ALERT] ${title}`, { severity, source, message });
   }

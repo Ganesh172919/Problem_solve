@@ -709,7 +709,7 @@ function buildEventHandlerScaffold(convention: string): string[] {
     `  const results = await Promise.allSettled(eventHandlers.map((h) => h(event)));`,
     `  const failed = results.filter((r) => r.status === 'rejected');`,
     `  if (failed.length > 0) {`,
-    `    logger.error('Event handlers failed', { eventType: event.type, failedCount: failed.length });`,
+    `    logger.error('Event handlers failed', undefined, { eventType: event.type, failedCount: failed.length });`,
     `  }`,
     `  logger.info('Event dispatched', { eventType: event.type, handlerCount: eventHandlers.length });`,
     `}`,

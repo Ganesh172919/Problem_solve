@@ -626,7 +626,7 @@ export class GrowthHackingAgent {
   private startGrowthMonitoring(): void {
     this.monitoringInterval = setInterval(async () => {
       await this.runGrowthCycle().catch(err =>
-        logger.error('Growth cycle error', { error: err instanceof Error ? err.message : err }),
+        logger.error('Growth cycle error', undefined, { error: err instanceof Error ? err.message : err }),
       );
     }, 3_600_000);
   }

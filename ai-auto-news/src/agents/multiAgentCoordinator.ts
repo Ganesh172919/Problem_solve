@@ -344,7 +344,7 @@ class MultiAgentCoordinator {
         duration: taskResult.duration,
       });
     } catch (error: any) {
-      logger.error('Task execution failed', error, { taskId: task.id, agentId: agent.agentId });
+      logger.error('Task execution failed', error instanceof Error ? error : undefined, { taskId: task.id, agentId: agent.agentId });
 
       agent.currentLoad--;
 

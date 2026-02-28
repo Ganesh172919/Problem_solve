@@ -76,16 +76,16 @@ describe('Cache Module', () => {
     it('should return cached value if exists', async () => {
       cache.set('key1', 'cached', 60);
 
-      const factory = jest.fn().mockResolvedValue('fresh');
-      const value = await cache.getOrSet('key1', factory, 60);
+      const factory = jest.fn<() => Promise<string>>().mockResolvedValue('fresh');
+      const value = await cache.getOrSet<string>('key1', factory, 60);
 
       expect(value).toBe('cached');
       expect(factory).not.toHaveBeenCalled();
     });
 
     it('should call factory if value not cached', async () => {
-      const factory = jest.fn().mockResolvedValue('fresh');
-      const value = await cache.getOrSet('key1', factory, 60);
+      const factory = jest.fn<() => Promise<string>>().mockResolvedValue('fresh');
+      const value = await cache.getOrSet<string>('key1', factory, 60);
 
       expect(value).toBe('fresh');
       expect(factory).toHaveBeenCalledTimes(1);

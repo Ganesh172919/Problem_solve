@@ -115,7 +115,7 @@ class DatabaseShardManager {
       const result = await pool.query(sql, params);
       return result.rows as T[];
     } catch (error: any) {
-      logger.error('Query failed', { shardId, sql, error: error.message });
+      logger.error('Query failed', undefined, { shardId, sql, error: error.message });
       throw error;
     }
   }
@@ -166,7 +166,7 @@ class DatabaseShardManager {
         const result = await pool.query(sql, params);
         return result.rows as T[];
       } catch (error: any) {
-        logger.error('Cross-shard query failed', {
+        logger.error('Cross-shard query failed', undefined, {
           shardId: shard.config.id,
           error: error.message,
         });

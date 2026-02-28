@@ -6,7 +6,7 @@
  * associative learning for the platform's AI agent ecosystem.
  */
 
-import { getLogger } from './logger';
+import { getLogger } from '../lib/logger';
 import { getMemoryGraph } from '../lib/contextualMemoryGraph';
 
 const logger = getLogger();

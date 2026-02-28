@@ -378,7 +378,7 @@ class PredictiveScalingEngine {
 
       logger.info('Scaling executed successfully', { id: decision.id });
     } catch (error: any) {
-      logger.error('Scaling execution failed', { id: decision.id, error: error.message });
+      logger.error('Scaling execution failed', undefined, { id: decision.id, error: error.message });
       decision.success = false;
     }
   }

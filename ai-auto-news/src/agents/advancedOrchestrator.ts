@@ -407,4 +407,4 @@ export function getAdvancedAgentOrchestrator(): AdvancedAgentOrchestrator {
   return orchestratorInstance;
 }
 
-export { AgentContext, AgentStep, AgentResult, AgentPlan };
+export type { AgentContext, AgentStep, AgentResult, AgentPlan };

@@ -129,3 +129,12 @@ export function sanitizeString(value: unknown, maxLength = 1000): string {
   if (typeof value !== 'string') return '';
   return value.trim().substring(0, maxLength);
 }
+
+export function validateApiKey(key: unknown): boolean {
+  if (typeof key !== 'string' || key.length === 0) return false;
+  return /^aian_[a-zA-Z0-9]{64}$/.test(key);
+}
+
+export function validateTier(tier: unknown): boolean {
+  return tier === 'free' || tier === 'pro' || tier === 'enterprise';
+}

@@ -312,7 +312,7 @@ export function verifyChainIntegrity(events: AuditEvent[]): boolean {
   const sorted = [...events].sort((a, b) => a.sequenceNumber - b.sequenceNumber);
   for (let i = 1; i < sorted.length; i++) {
     if (sorted[i].previousHash !== sorted[i - 1].hash) {
-      logger.error('Audit chain integrity violation', {
+      logger.error('Audit chain integrity violation', undefined, {
         seq: sorted[i].sequenceNumber,
         expected: sorted[i - 1].hash,
         got: sorted[i].previousHash,

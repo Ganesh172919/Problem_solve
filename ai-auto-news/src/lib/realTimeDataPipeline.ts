@@ -248,7 +248,7 @@ class RealTimeDataPipeline {
 
     try {
       // Process through processors
-      await this.processThrough Processors(batch);
+      await this.processThroughProcessors(batch);
 
       // Update aggregations
       await this.updateAggregations(batch);
@@ -265,7 +265,7 @@ class RealTimeDataPipeline {
       this.metrics.avgLatency = (this.metrics.avgLatency * 0.9) + (latency * 0.1);
 
     } catch (error) {
-      logger.error('Error processing event batch', error);
+      logger.error('Error processing event batch', error instanceof Error ? error : undefined);
       this.metrics.errorRate = (this.metrics.errorRate * 0.9) + 0.1;
     }
   }
@@ -297,7 +297,7 @@ class RealTimeDataPipeline {
             }
           }
         } catch (error) {
-          logger.error('Processor error', error, {
+          logger.error('Processor error', error instanceof Error ? error : undefined, {
             processorId: processor.id,
             eventId: event.id,
           });
@@ -350,7 +350,7 @@ class RealTimeDataPipeline {
             eventCount: matchedEvents.length,
           });
         } catch (error) {
-          logger.error('Pattern action error', error, {
+          logger.error('Pattern action error', error instanceof Error ? error : undefined, {
             patternId: pattern.id,
           });
         }
@@ -372,7 +372,7 @@ class RealTimeDataPipeline {
       try {
         await this.writeBatchToSink(sink, relevantEvents);
       } catch (error) {
-        logger.error('Sink write error', error, { sinkId: sink.id });
+        logger.error('Sink write error', error instanceof Error ? error : undefined, { sinkId: sink.id });
       }
     }
   }

@@ -241,7 +241,7 @@ class PaymentRetrySystem {
       attempt.status = 'failed';
       attempt.failureReason = error.message;
 
-      logger.error('Payment retry error', error, { attemptId });
+      logger.error('Payment retry error', error instanceof Error ? error : undefined, { attemptId });
 
       return false;
     }
@@ -401,7 +401,7 @@ class PaymentRetrySystem {
         try {
           await this.processAttempt(attempt.id);
         } catch (error) {
-          logger.error('Error processing payment attempt', error);
+          logger.error('Error processing payment attempt', error instanceof Error ? error : undefined);
         }
       }
     }, 60000); // Check every minute

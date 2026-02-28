@@ -460,7 +460,7 @@ export class RevenueGrowthAgent {
     } catch (err) {
       revenueAction.status = 'failed';
       revenueAction.result = { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
-      logger.error('Growth action failed', {
+      logger.error('Growth action failed', undefined, {
         actionId: revenueAction.actionId,
         error: revenueAction.result.error,
       });

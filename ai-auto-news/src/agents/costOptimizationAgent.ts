@@ -367,7 +367,7 @@ export class CostOptimizationAgent {
 
       return { success: true, actualSavings };
     } catch (err) {
-      logger.error('Optimization action failed', {
+      logger.error('Optimization action failed', undefined, {
         actionId,
         error: err instanceof Error ? err.message : 'Unknown',
       });
@@ -684,7 +684,7 @@ export class CostOptimizationAgent {
   private startCostMonitoring(): void {
     this.monitoringInterval = setInterval(async () => {
       await this.runOptimizationCycle().catch(err =>
-        logger.error('Cost cycle error', { error: err instanceof Error ? err.message : err }),
+        logger.error('Cost cycle error', undefined, { error: err instanceof Error ? err.message : err }),
       );
     }, 3_600_000);
   }

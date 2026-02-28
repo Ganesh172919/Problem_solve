@@ -110,7 +110,7 @@ class AdvancedCachingSystem {
       this.recordAccess(key, Date.now() - startTime);
       return null;
     } catch (error) {
-      logger.error('Cache get failed', error);
+      logger.error('Cache get failed', error instanceof Error ? error : undefined);
       return null;
     }
   }
@@ -130,7 +130,7 @@ class AdvancedCachingSystem {
 
       metrics.increment('cache.set');
     } catch (error) {
-      logger.error('Cache set failed', error);
+      logger.error('Cache set failed', error instanceof Error ? error : undefined);
     }
   }
 
@@ -173,7 +173,7 @@ class AdvancedCachingSystem {
         const value = await fetcher();
         await this.set(key, value);
       } catch (error) {
-        logger.error('Cache warming failed for key', { key, error });
+        logger.error('Cache warming failed for key', undefined, { key, error });
       }
     });
 
@@ -347,7 +347,7 @@ class AdvancedCachingSystem {
 
       return JSON.parse(data) as T;
     } catch (error) {
-      logger.error('L2 cache get failed', error);
+      logger.error('L2 cache get failed', error instanceof Error ? error : undefined);
       return null;
     }
   }
@@ -375,7 +375,7 @@ class AdvancedCachingSystem {
         }
       }
     } catch (error) {
-      logger.error('L2 cache set failed', error);
+      logger.error('L2 cache set failed', error instanceof Error ? error : undefined);
     }
   }
 

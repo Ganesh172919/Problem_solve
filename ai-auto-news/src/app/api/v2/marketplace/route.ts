@@ -132,7 +132,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const cacheKey = `api:v2:marketplace:list:${JSON.stringify(params)}`;
     const cached = await cache.get<ListingsResponse>(cacheKey);
     if (cached) {
-      logger.debug({ category: params.category, search: params.search }, 'Returning cached marketplace listings');
+      logger.debug('Returning cached marketplace listings', { category: params.category, search: params.search });
       return NextResponse.json(cached, {
         headers: { 'X-Cache': 'HIT', 'X-Response-Time': `${Date.now() - startMs}ms` },
       });
@@ -179,13 +179,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     };
 
     await cache.set(cacheKey, response, 300); // cache 5 minutes
-    logger.info({ total: searchResult.total, page, durationMs: Date.now() - startMs }, 'Marketplace listing GET complete');
+    logger.info('Marketplace listing GET complete', { total: searchResult.total, page, durationMs: Date.now() - startMs });
 
     return NextResponse.json(response, {
       headers: { 'X-Cache': 'MISS', 'X-Response-Time': `${Date.now() - startMs}ms` },
     });
   } catch (error) {
-    logger.error({ error, durationMs: Date.now() - startMs }, 'Marketplace GET error');
+    logger.error('Marketplace GET error', undefined, { error, durationMs: Date.now() - startMs });
     return NextResponse.json(
       { success: false, error: 'Failed to retrieve marketplace listings', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 },
@@ -300,14 +300,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       submittedAt: now.toISOString(),
     };
 
-    logger.info({ listingId, slug, developerName: body.developerName, durationMs: Date.now() - startMs }, 'Marketplace listing submitted');
+    logger.info('Marketplace listing submitted', { listingId, slug, developerName: body.developerName, durationMs: Date.now() - startMs });
 
     return NextResponse.json(response, {
       status: 201,
       headers: { 'X-Response-Time': `${Date.now() - startMs}ms` },
     });
   } catch (error) {
-    logger.error({ error, durationMs: Date.now() - startMs }, 'Marketplace POST error');
+    logger.error('Marketplace POST error', undefined, { error, durationMs: Date.now() - startMs });
     return NextResponse.json(
       { success: false, error: 'Failed to submit marketplace listing', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 },

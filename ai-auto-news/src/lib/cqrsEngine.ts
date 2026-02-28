@@ -478,7 +478,7 @@ export class SagaManager {
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       ctx.error = error.message;
-      logger.error('Saga failed, compensating', error, { sagaId, step: ctx.currentStep });
+      logger.error('Saga failed, compensating', error instanceof Error ? error : undefined, { sagaId, step: ctx.currentStep });
       await this.compensate(def, ctx);
       if (def.onFailed) await def.onFailed(ctx, error);
     }

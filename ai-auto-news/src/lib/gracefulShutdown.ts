@@ -226,7 +226,7 @@ export class ShutdownCoordinator {
       });
     } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error(String(err));
-      logger.error('ShutdownCoordinator: unexpected error during shutdown', error);
+      logger.error('ShutdownCoordinator: unexpected error during shutdown', error instanceof Error ? error : undefined);
       this.state = 'terminated';
     } finally {
       clearTimeout(globalTimer);
@@ -244,7 +244,7 @@ export class ShutdownCoordinator {
           logger.debug('ShutdownCoordinator: connection drained', { id: conn.id });
         } catch (err: unknown) {
           const error = err instanceof Error ? err : new Error(String(err));
-          logger.error('ShutdownCoordinator: failed to drain connection', error, { id: conn.id });
+          logger.error('ShutdownCoordinator: failed to drain connection', error instanceof Error ? error : undefined, { id: conn.id });
         }
       }),
     );
@@ -280,7 +280,7 @@ export class ShutdownCoordinator {
           });
         } else {
           this.metrics.hooksFailed++;
-          logger.error('ShutdownCoordinator: hook failed', error, { name: hook.name });
+          logger.error('ShutdownCoordinator: hook failed', error instanceof Error ? error : undefined, { name: hook.name });
         }
       }
     }

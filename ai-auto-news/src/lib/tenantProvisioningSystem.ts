@@ -311,7 +311,7 @@ export async function provisionTenant(params: {
     job.error = String(err);
     job.completedAt = new Date();
     tenant.status = 'provisioning'; // leave in provisioning state for retry
-    logger.error('Tenant provisioning failed', { tenantId, error: err });
+    logger.error('Tenant provisioning failed', undefined, { tenantId, error: err });
   }
 
   return job;

@@ -13,7 +13,7 @@
 
 import { getLogger } from './logger';
 import { getMetrics } from './metrics';
-import { getDB } from '../db';
+import { getDb as getDB } from '../db/index';
 
 const logger = getLogger();
 const metrics = getMetrics();

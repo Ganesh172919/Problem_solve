@@ -49,7 +49,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     cache.set(cacheKey, data, 600);
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
-    logger.error('Business Intelligence GET error', { error });
+    logger.error('Business Intelligence GET error', undefined, { error });
     return NextResponse.json({ error: 'Failed to retrieve business intelligence data' }, { status: 500 });
   }
 }
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
-    logger.error('Business Intelligence POST error', { error });
+    logger.error('Business Intelligence POST error', undefined, { error });
     return NextResponse.json({ error: 'Failed to build custom report' }, { status: 500 });
   }
 }

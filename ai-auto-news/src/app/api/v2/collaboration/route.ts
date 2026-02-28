@@ -25,7 +25,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     cache.set(cacheKey, data, 15);
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
-    logger.error('Collaboration GET error', { error });
+    logger.error('Collaboration GET error', undefined, { error });
     return NextResponse.json({ error: 'Failed to retrieve collaboration sessions' }, { status: 500 });
   }
 }
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
-    logger.error('Collaboration POST error', { error });
+    logger.error('Collaboration POST error', undefined, { error });
     return NextResponse.json({ error: 'Failed to handle collaboration action' }, { status: 500 });
   }
 }

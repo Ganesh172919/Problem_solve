@@ -683,7 +683,7 @@ class BusinessIntelligenceEngine {
       // Re-schedule
       this.scheduleReport(definition);
     } catch (err) {
-      logger.error('Scheduled report failed', { reportId: definition.id, err });
+      logger.error('Scheduled report failed', undefined, { reportId: definition.id, err });
     }
   }
 

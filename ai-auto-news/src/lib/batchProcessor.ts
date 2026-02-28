@@ -507,7 +507,7 @@ export class BatchProcessor<T = unknown, R = unknown> {
         this.onDeadLetter?.(dlEntry);
         const jobResult: BatchJobResult<R> = { jobId: job.id, success: false, error, attempts: job.attempts, durationMs };
         this.onResult?.(jobResult);
-        logger.error('Job exhausted retries, moved to DLQ', error, { jobId: job.id, attempts: job.attempts });
+        logger.error('Job exhausted retries, moved to DLQ', error instanceof Error ? error : undefined, { jobId: job.id, attempts: job.attempts });
       }
     } finally {
       this.activeCount--;

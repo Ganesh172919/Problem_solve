@@ -277,7 +277,7 @@ class IntelligentAPIGateway {
 
       return transformedResponse;
     } catch (error: any) {
-      logger.error('Request handling failed', { requestId: request.id, error: error.message });
+      logger.error('Request handling failed', undefined, { requestId: request.id, error: error.message });
       return this.createErrorResponse(500, 'Internal server error', startTime);
     }
   }

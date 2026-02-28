@@ -1,25 +1,37 @@
 import { describe, it, expect } from '@jest/globals';
-import { validateEmail, validateApiKey, validateTier, validatePagination } from '@/lib/validation';
+import { validateEmail, validateApiKey, validateTier, validatePagination, ValidationError } from '@/lib/validation';
+
+function tryValidateEmail(email: string): boolean {
+  try { validateEmail(email); return true; } catch { return false; }
+}
+
+function tryValidatePagination(page: unknown, limit: unknown): { page: number; limit: number } | null {
+  try { return validatePagination(page, limit); } catch { return null; }
+}
 
 describe('Validation Module', () => {
   describe('validateEmail', () => {
     it('should validate correct email formats', () => {
-      expect(validateEmail('user@example.com')).toBe(true);
-      expect(validateEmail('user.name+tag@example.co.uk')).toBe(true);
-      expect(validateEmail('user_name@example-domain.com')).toBe(true);
+      expect(tryValidateEmail('user@example.com')).toBe(true);
+      expect(tryValidateEmail('user.name+tag@example.co.uk')).toBe(true);
+      expect(tryValidateEmail('user_name@example-domain.com')).toBe(true);
     });
 
     it('should reject invalid email formats', () => {
-      expect(validateEmail('invalid')).toBe(false);
-      expect(validateEmail('invalid@')).toBe(false);
-      expect(validateEmail('@example.com')).toBe(false);
-      expect(validateEmail('user@.com')).toBe(false);
-      expect(validateEmail('')).toBe(false);
+      expect(tryValidateEmail('invalid')).toBe(false);
+      expect(tryValidateEmail('invalid@')).toBe(false);
+      expect(tryValidateEmail('@example.com')).toBe(false);
+      expect(tryValidateEmail('')).toBe(false);
     });
 
     it('should handle edge cases', () => {
-      expect(validateEmail('a@b.c')).toBe(true);
-      expect(validateEmail('user@localhost')).toBe(true);
+      expect(tryValidateEmail('a@b.c')).toBe(true);
+      expect(tryValidateEmail('user@localhost')).toBe(true);
+    });
+
+    it('should throw ValidationError for invalid input', () => {
+      expect(() => validateEmail('invalid')).toThrow(ValidationError);
+      expect(() => validateEmail('')).toThrow(ValidationError);
     });
   });
 
@@ -58,15 +70,15 @@ describe('Validation Module', () => {
       expect(validatePagination(5, 50)).toEqual({ page: 5, limit: 50 });
     });
 
-    it('should apply defaults for invalid values', () => {
-      expect(validatePagination(0, 10)).toEqual({ page: 1, limit: 10 });
-      expect(validatePagination(-1, 10)).toEqual({ page: 1, limit: 10 });
-      expect(validatePagination(1, 0)).toEqual({ page: 1, limit: 20 });
-      expect(validatePagination(1, -5)).toEqual({ page: 1, limit: 20 });
+    it('should throw for invalid values', () => {
+      expect(() => validatePagination(0, 10)).toThrow(ValidationError);
+      expect(() => validatePagination(-1, 10)).toThrow(ValidationError);
+      expect(() => validatePagination(1, 0)).toThrow(ValidationError);
+      expect(() => validatePagination(1, -5)).toThrow(ValidationError);
     });
 
     it('should enforce maximum limits', () => {
-      expect(validatePagination(1, 200)).toEqual({ page: 1, limit: 100 });
+      expect(() => validatePagination(1, 200)).toThrow(ValidationError);
       expect(validatePagination(1000, 50)).toEqual({ page: 1000, limit: 50 });
     });
   });

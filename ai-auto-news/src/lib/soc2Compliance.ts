@@ -519,4 +519,4 @@ export function getSOC2Compliance(): SOC2ComplianceFramework {
   return soc2Instance;
 }
 
-export { ComplianceControl, AuditEvent, SecurityIncident, AccessLog, DataRetentionPolicy };
+export type { ComplianceControl, AuditEvent, SecurityIncident, AccessLog, DataRetentionPolicy };

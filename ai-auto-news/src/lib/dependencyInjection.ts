@@ -381,7 +381,7 @@ export class Container implements IContainer {
       const result = descriptor.onInit(instance);
       if (result instanceof Promise) {
         result.catch((err: Error) => {
-          logger.error('Service init hook failed', err, { token: tokenToString(descriptor.token) });
+          logger.error('Service init hook failed', err instanceof Error ? err : undefined, { token: tokenToString(descriptor.token) });
         });
       }
     }

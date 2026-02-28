@@ -373,7 +373,7 @@ export class TenantBillingEngine {
       discountAmount = subtotal * (profile.annualDiscountPercent / 100);
     }
 
-    const tax = this.calculateTax({ subtotalUsd: subtotal - discountAmount, taxRate: profile.taxRate, taxableAmountUsd: subtotal - discountAmount, taxUsd: 0, taxJurisdiction: 'default' });
+    const tax = this.calculateTax({ subtotalUsd: subtotal - discountAmount, taxRate: profile.taxRate, taxableAmountUsd: subtotal - discountAmount, taxJurisdiction: 'default' });
     const creditApplied = Math.min(profile.creditBalance, subtotal - discountAmount + tax.taxUsd);
     const amountDue = Math.max(0, subtotal - discountAmount + tax.taxUsd - creditApplied);
 

@@ -411,7 +411,7 @@ export async function executeHook(
         error: String(err),
       });
 
-      logger.error('Plugin hook execution failed', { pluginId, hookName, error: err });
+      logger.error('Plugin hook execution failed', undefined, { pluginId, hookName, error: err });
     }
   }
 

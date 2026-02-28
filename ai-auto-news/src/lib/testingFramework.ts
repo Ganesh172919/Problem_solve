@@ -153,7 +153,7 @@ class ComprehensiveTestingFramework {
     } catch (error: any) {
       run.status = 'failed';
       run.completedAt = new Date();
-      logger.error('Test suite failed', error);
+      logger.error('Test suite failed', error instanceof Error ? error : undefined);
     } finally {
       // Run teardown
       if (suite.teardown) {
@@ -238,7 +238,7 @@ class ComprehensiveTestingFramework {
           result.status = 'failed';
           result.duration = Date.now() - startTime;
 
-          logger.error('Test failed', {
+          logger.error('Test failed', undefined, {
             testId: test.id,
             error: error.message,
           });

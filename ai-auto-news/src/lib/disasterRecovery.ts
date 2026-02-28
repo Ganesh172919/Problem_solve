@@ -25,7 +25,7 @@ const metrics = getMetrics();
 
 export interface BackupConfig {
   schedule: string; // Cron expression
-  retention Days: number;
+  retentionDays: number;
   storage: 'local' | 's3' | 'gcs' | 'azure';
   encryption: boolean;
   compression: boolean;
@@ -154,7 +154,7 @@ class DisasterRecoveryManager {
 
       return metadata;
     } catch (error: any) {
-      logger.error('Backup failed', error);
+      logger.error('Backup failed', error instanceof Error ? error : undefined);
       metrics.increment('disaster_recovery.backup.failed');
 
       const metadata: BackupMetadata = {
@@ -199,7 +199,7 @@ class DisasterRecoveryManager {
       logger.info('Restore completed successfully');
       metrics.increment('disaster_recovery.restore.success');
     } catch (error: any) {
-      logger.error('Restore failed', error);
+      logger.error('Restore failed', error instanceof Error ? error : undefined);
       metrics.increment('disaster_recovery.restore.failed');
       throw error;
     }
@@ -239,7 +239,7 @@ class DisasterRecoveryManager {
       logger.info('Point-in-time recovery completed');
       metrics.increment('disaster_recovery.pitr.success');
     } catch (error: any) {
-      logger.error('Point-in-time recovery failed', error);
+      logger.error('Point-in-time recovery failed', error instanceof Error ? error : undefined);
       metrics.increment('disaster_recovery.pitr.failed');
       throw error;
     }
@@ -291,7 +291,7 @@ class DisasterRecoveryManager {
       this.resolveIncident(incident.id);
       metrics.increment('disaster_recovery.failover.success');
     } catch (error: any) {
-      logger.error('Failover failed', error);
+      logger.error('Failover failed', error instanceof Error ? error : undefined);
       metrics.increment('disaster_recovery.failover.failed');
       throw error;
     }
@@ -342,7 +342,7 @@ class DisasterRecoveryManager {
       logger.info('Chaos experiment completed', { experiment: experiment.name });
       metrics.increment('disaster_recovery.chaos.completed');
     } catch (error: any) {
-      logger.error('Chaos experiment failed', error);
+      logger.error('Chaos experiment failed', error instanceof Error ? error : undefined);
       metrics.increment('disaster_recovery.chaos.failed');
       await this.recoverFromChaos(experiment);
       throw error;
@@ -370,7 +370,7 @@ class DisasterRecoveryManager {
       logger.info('Rollback completed successfully', { previousVersion });
       metrics.increment('disaster_recovery.rollback.success');
     } catch (error: any) {
-      logger.error('Rollback failed', error);
+      logger.error('Rollback failed', error instanceof Error ? error : undefined);
       metrics.increment('disaster_recovery.rollback.failed');
       throw error;
     }
@@ -401,7 +401,7 @@ class DisasterRecoveryManager {
       logger.info('Blue-green deployment completed');
       metrics.increment('disaster_recovery.blue_green.success');
     } catch (error: any) {
-      logger.error('Blue-green deployment failed', error);
+      logger.error('Blue-green deployment failed', error instanceof Error ? error : undefined);
 
       // Rollback to blue
       await this.switchTraffic('blue');
@@ -446,7 +446,7 @@ class DisasterRecoveryManager {
       logger.info('Canary release completed');
       metrics.increment('disaster_recovery.canary.success');
     } catch (error: any) {
-      logger.error('Canary release failed', error);
+      logger.error('Canary release failed', error instanceof Error ? error : undefined);
 
       // Rollback canary
       await this.rollbackCanary();

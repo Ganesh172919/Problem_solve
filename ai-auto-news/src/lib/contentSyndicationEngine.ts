@@ -360,7 +360,7 @@ class ContentSyndicationEngine {
         job.status = 'failed';
         job.errorMessage = err instanceof Error ? err.message : 'Unknown error';
         job.retryCount++;
-        logger.error('Syndication failed', { contentId, partnerId, error: job.errorMessage });
+        logger.error('Syndication failed', undefined, { contentId, partnerId, error: job.errorMessage });
       }
 
       this.jobs.set(job.id, job);

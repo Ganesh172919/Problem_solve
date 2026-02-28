@@ -353,7 +353,7 @@ export function createIncident(
   };
 
   incidents.unshift(incident);
-  logger.error(`[INCIDENT CREATED] ${title}`, { incidentId: incident.id, severity });
+  logger.error(`[INCIDENT CREATED] ${title}`, undefined, { incidentId: incident.id, severity });
   return incident;
 }
 

@@ -143,7 +143,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const cached = await cache.get<AggregatedInsightsResponse>(cacheKey);
     if (cached) {
-      logger.debug({ segment: params.segment, userId: params.userId }, 'Returning cached insights');
+      logger.debug('Returning cached insights', { segment: params.segment, userId: params.userId });
       return NextResponse.json(cached, {
         headers: { 'X-Cache': 'HIT', 'X-Response-Time': `${Date.now() - startMs}ms` },
       });
@@ -202,13 +202,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     };
 
     await cache.set(cacheKey, response, 3600);
-    logger.info({ totalUsers: insightReport.totalUsersAnalyzed, personas: personaSummaries.length, durationMs: Date.now() - startMs }, 'Insights GET complete');
+    logger.info('Insights GET complete', { totalUsers: insightReport.totalUsersAnalyzed, personas: personaSummaries.length, durationMs: Date.now() - startMs });
 
     return NextResponse.json(response, {
       headers: { 'X-Cache': 'MISS', 'X-Response-Time': `${Date.now() - startMs}ms` },
     });
   } catch (error) {
-    logger.error({ error, durationMs: Date.now() - startMs }, 'Insights GET error');
+    logger.error('Insights GET error', undefined, { error, durationMs: Date.now() - startMs });
     return NextResponse.json(
       { success: false, error: 'Failed to retrieve customer insights', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 },
@@ -353,14 +353,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       triggeredAt: new Date().toISOString(),
     };
 
-    logger.info({ analysisId, scope, userId: body.userId, segment: body.segment, durationMs: Date.now() - startMs }, 'Insight analysis triggered');
+    logger.info('Insight analysis triggered', { analysisId, scope, userId: body.userId, segment: body.segment, durationMs: Date.now() - startMs });
 
     return NextResponse.json(response, {
       status: 200,
       headers: { 'X-Response-Time': `${Date.now() - startMs}ms` },
     });
   } catch (error) {
-    logger.error({ error, durationMs: Date.now() - startMs }, 'Insights POST error');
+    logger.error('Insights POST error', undefined, { error, durationMs: Date.now() - startMs });
     return NextResponse.json(
       { success: false, error: 'Failed to trigger insight analysis', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 },

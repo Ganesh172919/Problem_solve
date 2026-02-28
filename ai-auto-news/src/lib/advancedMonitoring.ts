@@ -436,7 +436,7 @@ class AdvancedMonitoringSystem {
         severity: alert.severity,
       });
     } catch (error) {
-      logger.error('Failed to send notification', error);
+      logger.error('Failed to send notification', error instanceof Error ? error : undefined);
       metrics.increment('monitoring.notification.failed', {
         channel: channel.type,
       });

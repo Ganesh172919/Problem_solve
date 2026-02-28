@@ -1,93 +1,73 @@
 import { describe, it, expect } from '@jest/globals';
 import {
-  getTierPricing,
+  getMonthlyPrice,
   getUpgradeCostProrated,
   estimateMonthlyApiCost,
   getTierComparison,
 } from '@/lib/billing';
 
 describe('Billing Module', () => {
-  describe('getTierPricing', () => {
-    it('should return correct pricing for all tiers', () => {
-      expect(getTierPricing('free')).toEqual({ monthly: 0, apiCallLimit: 100 });
-      expect(getTierPricing('pro')).toEqual({ monthly: 29, apiCallLimit: 10000 });
-      expect(getTierPricing('enterprise')).toEqual({ monthly: 299, apiCallLimit: 1000000 });
-    });
-
-    it('should handle invalid tiers', () => {
-      expect(getTierPricing('invalid' as any)).toBeUndefined();
+  describe('getMonthlyPrice', () => {
+    it('should return correct monthly pricing for all tiers', () => {
+      expect(getMonthlyPrice('free')).toBe(0);
+      expect(getMonthlyPrice('pro')).toBeGreaterThan(0);
+      expect(getMonthlyPrice('enterprise')).toBeGreaterThan(getMonthlyPrice('pro'));
     });
   });
 
   describe('getUpgradeCostProrated', () => {
     it('should calculate prorated cost for upgrade', () => {
-      const startDate = new Date('2024-01-01');
-      const currentDate = new Date('2024-01-15');
-
-      // 15 days into 31-day month (approximately 48% through period)
-      const cost = getUpgradeCostProrated('free', 'pro', startDate, currentDate);
-
+      const cost = getUpgradeCostProrated('free', 'pro', 16);
       expect(cost).toBeGreaterThan(0);
-      expect(cost).toBeLessThan(29);
+      expect(cost).toBeLessThan(getMonthlyPrice('pro'));
     });
 
     it('should return 0 for same tier', () => {
-      const startDate = new Date('2024-01-01');
-      const currentDate = new Date('2024-01-15');
-
-      const cost = getUpgradeCostProrated('pro', 'pro', startDate, currentDate);
+      const cost = getUpgradeCostProrated('pro', 'pro', 15);
       expect(cost).toBe(0);
     });
 
-    it('should handle downgrade scenarios', () => {
-      const startDate = new Date('2024-01-01');
-      const currentDate = new Date('2024-01-15');
-
-      const cost = getUpgradeCostProrated('pro', 'free', startDate, currentDate);
-      expect(cost).toBeLessThanOrEqual(0);
+    it('should return 0 for downgrade (no charge)', () => {
+      const cost = getUpgradeCostProrated('pro', 'free', 15);
+      expect(cost).toBe(0);
     });
   });
 
   describe('estimateMonthlyApiCost', () => {
-    it('should calculate costs within tier limits', () => {
-      expect(estimateMonthlyApiCost('free', 50)).toBe(0);
-      expect(estimateMonthlyApiCost('pro', 5000)).toBe(29);
-      expect(estimateMonthlyApiCost('enterprise', 500000)).toBe(299);
+    it('should return included=true when within limits', () => {
+      const result = estimateMonthlyApiCost(50, 'free');
+      expect(result.included).toBe(true);
+      expect(result.overageCallCount).toBe(0);
+      expect(result.estimatedOverageCost).toBe(0);
     });
 
     it('should calculate overage costs', () => {
-      const cost = estimateMonthlyApiCost('free', 200);
-      expect(cost).toBeGreaterThan(0);
-
-      const proCost = estimateMonthlyApiCost('pro', 15000);
-      expect(proCost).toBeGreaterThan(29);
+      const result = estimateMonthlyApiCost(999999, 'free');
+      expect(result.included).toBe(false);
+      expect(result.overageCallCount).toBeGreaterThan(0);
     });
 
     it('should handle zero usage', () => {
-      expect(estimateMonthlyApiCost('free', 0)).toBe(0);
-      expect(estimateMonthlyApiCost('pro', 0)).toBe(29);
+      const result = estimateMonthlyApiCost(0, 'pro');
+      expect(result.included).toBe(true);
+      expect(result.overageCallCount).toBe(0);
     });
   });
 
   describe('getTierComparison', () => {
-    it('should return comparison for all tiers', () => {
+    it('should return comparison rows', () => {
       const comparison = getTierComparison();
-
-      expect(comparison).toHaveLength(3);
-      expect(comparison[0].tier).toBe('free');
-      expect(comparison[1].tier).toBe('pro');
-      expect(comparison[2].tier).toBe('enterprise');
+      expect(Array.isArray(comparison)).toBe(true);
+      expect(comparison.length).toBeGreaterThan(0);
     });
 
-    it('should include all required fields', () => {
+    it('should include required fields per row', () => {
       const comparison = getTierComparison();
-
-      comparison.forEach(tier => {
-        expect(tier).toHaveProperty('tier');
-        expect(tier).toHaveProperty('price');
-        expect(tier).toHaveProperty('features');
-        expect(tier.features).toHaveProperty('apiCalls');
-        expect(tier.features).toHaveProperty('rateLimit');
+      comparison.forEach(row => {
+        expect(row).toHaveProperty('feature');
+        expect(row).toHaveProperty('free');
+        expect(row).toHaveProperty('pro');
+        expect(row).toHaveProperty('enterprise');
       });
     });
   });

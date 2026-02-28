@@ -25,7 +25,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     cache.set(cacheKey, data, 120);
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
-    logger.error('Pricing GET error', { error });
+    logger.error('Pricing GET error', undefined, { error });
     return NextResponse.json({ error: 'Failed to retrieve pricing data' }, { status: 500 });
   }
 }
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
-    logger.error('Pricing POST error', { error });
+    logger.error('Pricing POST error', undefined, { error });
     return NextResponse.json({ error: 'Failed to apply pricing rule' }, { status: 500 });
   }
 }

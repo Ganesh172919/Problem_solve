@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('Failed to retrieve health scorecard', { dimension, error });
+    logger.error('Failed to retrieve health scorecard', undefined, { dimension, error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 },
@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   } catch (error) {
-    logger.error('Health scorecard API error', { action, error });
+    logger.error('Health scorecard API error', undefined, { action, error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 },

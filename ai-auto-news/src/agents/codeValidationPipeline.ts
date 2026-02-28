@@ -430,7 +430,7 @@ class CodeValidationPipeline {
             });
           }
         } catch (error) {
-          logger.error('Custom rule checker failed', { ruleId: rule.id, error });
+          logger.error('Custom rule checker failed', undefined, { ruleId: rule.id, error });
         }
       }
     }

@@ -203,7 +203,7 @@ export class ContentDistributionAgent {
         task.status = 'failed';
         task.errorMessage = message;
         failed++;
-        logger.error('Distribution task failed', { taskId: task.id, error: message });
+        logger.error('Distribution task failed', undefined, { taskId: task.id, error: message });
       }
     }
 
@@ -324,7 +324,7 @@ export class ContentDistributionAgent {
           errorMessage: message, reachEstimate: 0, engagementEstimate: 0,
           utmUrl, durationMs: Date.now() - start,
         });
-        logger.error('Channel distribution failed', { contentId: task.contentId, channel: channel.type, error: message });
+        logger.error('Channel distribution failed', undefined, { contentId: task.contentId, channel: channel.type, error: message });
       }
     }
 
