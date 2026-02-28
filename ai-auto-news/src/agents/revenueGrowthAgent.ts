@@ -697,7 +697,7 @@ export class RevenueGrowthAgent {
 }
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __revenueGrowthAgent__: RevenueGrowthAgent | undefined;
 }
 

@@ -294,7 +294,7 @@ export class SchemaEvolutionAgent {
 // ── Singleton ─────────────────────────────────────────────────────────────────
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __schemaEvolutionAgent__: SchemaEvolutionAgent | undefined;
 }
 

@@ -5,10 +5,6 @@ function tryValidateEmail(email: string): boolean {
   try { validateEmail(email); return true; } catch { return false; }
 }
 
-function tryValidatePagination(page: unknown, limit: unknown): { page: number; limit: number } | null {
-  try { return validatePagination(page, limit); } catch { return null; }
-}
-
 describe('Validation Module', () => {
   describe('validateEmail', () => {
     it('should validate correct email formats', () => {

@@ -635,7 +635,7 @@ class ServiceGraphAnalyzer {
 // ── Singleton ─────────────────────────────────────────────────────────────────
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __serviceGraphAnalyzer__: ServiceGraphAnalyzer | undefined;
 }
 

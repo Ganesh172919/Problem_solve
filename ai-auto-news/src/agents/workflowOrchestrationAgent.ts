@@ -278,7 +278,7 @@ export class WorkflowOrchestrationAgent {
 // ── Singleton ─────────────────────────────────────────────────────────────────
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __workflowOrchestrationAgent__: WorkflowOrchestrationAgent | undefined;
 }
 

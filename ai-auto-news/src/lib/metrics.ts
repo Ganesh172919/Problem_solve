@@ -16,7 +16,8 @@ class MetricsCollector {
   constructor(windowMs = 60_000) {
     this.windowMs = windowMs;
     if (typeof setInterval !== 'undefined') {
-      setInterval(() => this.evict(), this.windowMs);
+      const timer = setInterval(() => this.evict(), this.windowMs);
+      if (typeof timer === 'object' && 'unref' in timer) timer.unref();
     }
   }
 

@@ -654,7 +654,7 @@ export class APIEvolutionAgent {
 // ---------------------------------------------------------------------------
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __apiEvolutionAgent__: APIEvolutionAgent | undefined;
 }
 

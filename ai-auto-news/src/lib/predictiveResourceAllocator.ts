@@ -267,7 +267,7 @@ export class PredictiveResourceAllocator {
 // ── Singleton ─────────────────────────────────────────────────────────────────
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __predictiveResourceAllocator__: PredictiveResourceAllocator | undefined;
 }
 

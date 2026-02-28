@@ -23,3 +23,24 @@ process.env.PERPLEXITY_API_KEY = 'test-perplexity-key';
 afterEach(() => {
   jest.clearAllMocks();
 });
+
+// Clean up global singleton timers (auto-publisher & task queue) after all tests
+afterAll(() => {
+  const g = globalThis as unknown as Record<string, { intervalId?: ReturnType<typeof setInterval> | null; running?: boolean }>;
+
+  // Stop auto-publisher scheduler
+  const pubState = g['__autoPublisherState__'];
+  if (pubState?.intervalId) {
+    clearInterval(pubState.intervalId);
+    pubState.intervalId = null;
+    pubState.running = false;
+  }
+
+  // Stop task queue
+  const queueState = g['__taskQueueState__'];
+  if (queueState?.intervalId) {
+    clearInterval(queueState.intervalId);
+    queueState.intervalId = null;
+    queueState.running = false;
+  }
+});

@@ -547,7 +547,7 @@ class IntelligentLoadTesting {
 // ── Singleton ─────────────────────────────────────────────────────────────────
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __intelligentLoadTesting__: IntelligentLoadTesting | undefined;
 }
 

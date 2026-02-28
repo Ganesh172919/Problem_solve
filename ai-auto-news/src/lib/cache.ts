@@ -8,7 +8,8 @@ class InMemoryCache {
 
   constructor() {
     if (typeof setInterval !== 'undefined') {
-      setInterval(() => this.evict(), 60_000);
+      const timer = setInterval(() => this.evict(), 60_000);
+      if (typeof timer === 'object' && 'unref' in timer) timer.unref();
     }
   }
 

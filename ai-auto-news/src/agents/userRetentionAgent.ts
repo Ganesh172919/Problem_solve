@@ -757,7 +757,7 @@ export class UserRetentionAgent {
 }
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __userRetentionAgent__: UserRetentionAgent | undefined;
 }
 

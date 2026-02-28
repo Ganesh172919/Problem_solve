@@ -702,7 +702,7 @@ export class CostOptimizationAgent {
 // ---------------------------------------------------------------------------
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __costOptimizationAgent__: CostOptimizationAgent | undefined;
 }
 

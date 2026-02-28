@@ -365,7 +365,7 @@ export class AdaptiveContentRanker {
 // ── Singleton ─────────────────────────────────────────────────────────────────
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __adaptiveContentRanker__: AdaptiveContentRanker | undefined;
 }
 
