@@ -433,7 +433,7 @@ export class AdaptiveSecurityPosture {
     for (const playbook of this.playbooks.values()) {
       if (!playbook.enabled) continue;
       const matches = playbook.triggerConditions.every(cond => {
-        const val = (signal as Record<string, unknown>)[cond.field];
+        const val = (signal as unknown as Record<string, unknown>)[cond.field];
         if (cond.operator === 'equals') return val === cond.value;
         if (cond.operator === 'gte') return typeof val === 'number' && val >= (cond.value as number);
         if (cond.operator === 'includes') return typeof val === 'string' && val.includes(String(cond.value));

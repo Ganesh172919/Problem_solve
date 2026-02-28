@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { NotificationCategory } from '@/lib/notificationEngine';
 import {
   sendNotification,
   sendTemplateNotification,
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest) {
 
     // Default: inbox
     const unreadOnly = searchParams.get('unreadOnly') === 'true';
-    const category = searchParams.get('category') as Parameters<typeof getUserInbox>[1]['category'] | undefined;
+    const category = searchParams.get('category') as NotificationCategory | undefined;
     const limit = parseInt(searchParams.get('limit') ?? '50', 10);
 
     const notifications = getUserInbox(userId, { unreadOnly, category, limit });

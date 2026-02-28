@@ -196,15 +196,15 @@ function computeHash(event: Omit<AuditEvent, 'hash'>, previousHash: string): str
     previousHash,
   });
 
-  // FNV-1a-like hash for demonstration (production: SHA-256)
-  let hash = 0xcbf29ce484222325n;
+  // Simple hash for demonstration (production: SHA-256)
+  let hash = 2166136261;
   const encoder = new TextEncoder();
   const bytes = encoder.encode(data);
   for (const byte of bytes) {
-    hash ^= BigInt(byte);
-    hash = (hash * 0x100000001b3n) & 0xffffffffffffffffn;
+    hash ^= byte;
+    hash = (hash * 16777619) >>> 0;
   }
-  return hash.toString(16).padStart(16, '0').repeat(4);
+  return hash.toString(16).padStart(8, '0').repeat(4);
 }
 
 function generateEventId(): string {

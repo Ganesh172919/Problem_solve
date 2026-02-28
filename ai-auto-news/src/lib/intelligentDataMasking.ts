@@ -274,7 +274,7 @@ export class IntelligentDataMasking {
     const startTime = Date.now();
     const maskedData = { ...data };
     const maskedFields: string[] = [];
-    const tokensGenerated: Record<string, string> = [];
+    const tokensGenerated: Record<string, string> = {};
 
     const canSeeUnmasked = policy.allowedRoles.includes(callerRole);
 

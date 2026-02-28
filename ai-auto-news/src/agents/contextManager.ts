@@ -436,7 +436,7 @@ class AdvancedContextManager {
         const itemTags = item.metadata.tags || [];
         const candidateTags = candidate.metadata.tags || [];
 
-        const overlap = itemTags.filter(tag => candidateTags.includes(tag)).length;
+        const overlap = itemTags.filter((tag: string) => candidateTags.includes(tag)).length;
         return overlap > 0;
       });
 

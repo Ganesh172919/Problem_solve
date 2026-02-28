@@ -210,7 +210,7 @@ export class ShutdownCoordinator {
       await this.drainConnections();
 
       // Phase 2: Shutting down
-      if (this.state === 'terminated') return;
+      if ((this.state as string) === 'terminated') return;
       this.state = 'shuttingDown';
       logger.info('ShutdownCoordinator: executing shutdown hooks', { count: this.hooks.length });
       await this.executeHooks();

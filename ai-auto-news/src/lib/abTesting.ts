@@ -68,9 +68,9 @@ export class ABTestingFramework {
       id,
       status: 'draft',
       currentSampleSize: 0,
-      confidenceLevel: 0,
       createdAt: new Date(),
       ...test,
+      confidenceLevel: test.confidenceLevel ?? 0,
       variants: test.variants.map(v => ({
         ...v,
         metrics: {

@@ -46,6 +46,14 @@ class MetricsCollector {
     // no-op stub for gauge metrics
   }
 
+  recordGauge(_name: string, _value: number, _labels?: Record<string, string>): void {
+    // alias for gauge
+  }
+
+  recordHistogram(_name: string, _value: number, _labels?: Record<string, string>): void {
+    // alias for histogram
+  }
+
   histogram(_name: string, _value: number, _labels?: Record<string, string>): void {
     // no-op stub for histogram metrics
   }

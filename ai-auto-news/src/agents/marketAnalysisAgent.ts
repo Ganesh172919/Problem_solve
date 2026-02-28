@@ -258,11 +258,9 @@ export class MarketAnalysisAgent {
     // Embed the competitor profile for semantic search
     await this.vectorDb.upsert({
       namespace: 'market-analysis',
-      vectors: [{
-        id: `competitor:${profile.id}`,
-        values: this.textToVector(`${name} ${profile.description} ${profile.keyFeatures.join(' ')}`),
-        metadata: { type: 'competitor', name, domain, tier, updatedAt: new Date().toISOString() },
-      }],
+      id: `competitor:${profile.id}`,
+      vector: this.textToVector(`${name} ${profile.description} ${profile.keyFeatures.join(' ')}`),
+      metadata: { type: 'competitor', name, domain, tier, updatedAt: new Date().toISOString() },
     });
 
     const ttl = (config.refreshCacheHours ?? this.CACHE_TTL_HOURS) * 3600;

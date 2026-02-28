@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
           overallScore: fullScorecard.overallScore,
           grade: fullScorecard.grade,
           dimensions,
-          slaCompliance: fullScorecard.slaCompliance,
+          slaCompliant: fullScorecard.slaCompliant,
           generatedAt: fullScorecard.generatedAt,
         },
         recentEvents: recentEvents.map(event => ({
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'dimension is required for action=get_trend' }, { status: 400 });
       }
       const trend = scorecard.getHealthTrend(dimension as HealthDimension, 60);
-      logger.info('Trend retrieved', { dimension, direction: trend.direction });
+      logger.info('Trend retrieved', { dimension, changeRate: trend.changeRate });
       return NextResponse.json({ success: true, data: { trend } });
     }
 

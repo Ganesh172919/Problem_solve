@@ -723,7 +723,7 @@ class BusinessIntelligenceEngine {
   private runPipelineStage(data: DataPoint[], stage: AggregationStage): DataPoint[] {
     switch (stage.type) {
       case 'filter': {
-        const { field, operator, value } = stage.config as ReportFilter;
+        const { field, operator, value } = stage.config as unknown as ReportFilter;
         return data.filter((dp) => this.applyFilter(dp, { field, operator, value } as ReportFilter));
       }
       case 'group': {

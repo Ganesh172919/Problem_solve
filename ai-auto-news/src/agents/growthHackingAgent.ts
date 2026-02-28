@@ -429,7 +429,7 @@ export class GrowthHackingAgent {
 
     // Opportunity: if we fix the biggest dropoff to industry benchmark (10% better conversion)
     const fixedConversionGain = 0.10;
-    const optimizationOpportunity = Math.round(topOfFunnelUsers * fixedConversionGain * steps[biggestDropStepIndex]?.dropoffRate ?? 0);
+    const optimizationOpportunity = Math.round((topOfFunnelUsers * fixedConversionGain * (steps[biggestDropStepIndex]?.dropoffRate ?? 0)));
 
     logger.info('Funnel analyzed', {
       steps: steps.length,

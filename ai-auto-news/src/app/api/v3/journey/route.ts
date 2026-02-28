@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
       }
       case 'attribution': {
         const journeyId = searchParams.get('journeyId');
-        const model = (searchParams.get('model') ?? 'linear') as import('@/lib/customerJourneyMapper').AttributionModel;
+        const model = (searchParams.get('model') ?? 'linear') as unknown as import('@/lib/customerJourneyMapper').AttributionModel;
         if (!journeyId) {
           return NextResponse.json({ error: 'journeyId is required for attribution' }, { status: 400 });
         }

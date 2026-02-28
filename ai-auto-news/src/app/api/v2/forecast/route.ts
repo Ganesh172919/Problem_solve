@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getLogger } from '../../../../lib/logger';
 import { getCache } from '../../../../lib/cache';
-import getRevenueForecastingEngine from '../../../../lib/revenueForecastingEngine';
+import getRevenueForecastingEngine, { type ScenarioForecast as ScenarioForecastType } from '../../../../lib/revenueForecastingEngine';
 
 const logger = getLogger();
 const cache = getCache();
@@ -295,10 +295,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function buildScenarioSummary(
-  scenario: { scenario: 'bull' | 'base' | 'bear'; forecast: Array<{ mrr: number; arr: number }>; assumptions: { monthlyGrowthRate: number; churnRate: number; expansionRate: number } },
+  scenario: ScenarioForecastType,
   horizonMonths: number,
 ): ScenarioSummary {
-  const points = scenario.forecast.slice(0, horizonMonths);
+  const points = scenario.points.slice(0, horizonMonths);
   const first = points[0];
   const last = points[points.length - 1];
   const growth = first ? Math.round(((last.mrr - first.mrr) / Math.max(first.mrr, 1)) * 10000) / 100 : 0;
@@ -316,7 +316,11 @@ function buildScenarioSummary(
     finalMrrUsd: Math.round(last?.mrr ?? 0),
     finalArrUsd: Math.round(last?.arr ?? 0),
     mrrGrowthPercent: growth,
-    assumptions: scenario.assumptions,
+    assumptions: {
+      monthlyGrowthRate: scenario.growthRate,
+      churnRate: scenario.churnRate,
+      expansionRate: scenario.expansionRate,
+    },
   };
 }
 

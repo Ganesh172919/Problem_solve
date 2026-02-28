@@ -174,8 +174,6 @@ export class HyperPersonalizationEngine {
     }
 
     const profile: UserProfile = {
-      userId: params.userId,
-      tenantId: params.tenantId,
       segment: 'new',
       traits: {},
       preferences: {},

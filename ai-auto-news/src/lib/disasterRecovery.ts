@@ -149,7 +149,7 @@ class DisasterRecoveryManager {
       // Clean old backups
       await this.cleanOldBackups();
 
-      logger.info('Backup completed', metadata);
+      logger.info('Backup completed', metadata as unknown as Record<string, unknown>);
       metrics.increment('disaster_recovery.backup.success');
 
       return metadata;
@@ -178,7 +178,7 @@ class DisasterRecoveryManager {
    * Restore from backup
    */
   async restore(options: RestoreOptions): Promise<void> {
-    logger.info('Starting restore', options);
+    logger.info('Starting restore', options as unknown as Record<string, unknown>);
 
     const backup = this.backupHistory.find(b => b.id === options.backupId);
 

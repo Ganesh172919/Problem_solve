@@ -60,7 +60,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ deleted: true });
     }
     if (action === 'evaluate') {
-      const decision = shaper.evaluateRequest(body as Parameters<typeof shaper.evaluateRequest>[0]);
+      const decision = shaper.evaluateRequest(body as unknown as Parameters<typeof shaper.evaluateRequest>[0]);
       return NextResponse.json(decision);
     }
     if (action === 'record_congestion') {

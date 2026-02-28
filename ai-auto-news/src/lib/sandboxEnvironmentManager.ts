@@ -298,7 +298,7 @@ export class SandboxEnvironmentManager {
     if (!sandbox || sandbox.status !== 'paused') return false;
 
     this.checkExpiration(sandbox);
-    if (sandbox.status === 'expired') return false;
+    if ((sandbox.status as string) === 'expired') return false;
 
     sandbox.status = 'active';
     sandbox.updatedAt = Date.now();

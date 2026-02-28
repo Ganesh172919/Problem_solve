@@ -59,7 +59,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ deleted: true });
     }
     if (action === 'search') {
-      const result = engine.search(body as Parameters<typeof engine.search>[0]);
+      const result = engine.search(body as unknown as Parameters<typeof engine.search>[0]);
       return NextResponse.json(result);
     }
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 });

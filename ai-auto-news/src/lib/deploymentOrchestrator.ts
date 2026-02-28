@@ -314,7 +314,7 @@ async function executeStep(
         logger.warn('Unknown deployment step', { step: step.name });
     }
 
-    if (step.status !== 'skipped') step.status = 'completed';
+    if ((step.status as string) !== 'skipped') step.status = 'completed';
   } catch (err) {
     step.status = 'failed';
     step.error = String(err);

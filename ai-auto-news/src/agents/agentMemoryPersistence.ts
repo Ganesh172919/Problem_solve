@@ -404,7 +404,7 @@ class AgentMemoryPersistence {
     // Limit cache size
     if (this.embeddingCache.size > 10000) {
       const firstKey = this.embeddingCache.keys().next().value;
-      this.embeddingCache.delete(firstKey);
+      this.embeddingCache.delete(firstKey!);
     }
 
     return embedding;

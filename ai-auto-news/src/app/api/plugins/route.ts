@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { PluginCategory } from '@/lib/pluginSystem';
 import {
   searchMarketplace,
   getTenantPlugins,
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
 
     if (view === 'marketplace') {
       const query = searchParams.get('query') ?? undefined;
-      const category = searchParams.get('category') as Parameters<typeof searchMarketplace>[0]['category'] | undefined;
+      const category = searchParams.get('category') as PluginCategory | undefined;
       const tier = searchParams.get('tier') ?? undefined;
       const sortBy = (searchParams.get('sortBy') ?? 'downloads') as 'downloads' | 'rating' | 'updated';
 

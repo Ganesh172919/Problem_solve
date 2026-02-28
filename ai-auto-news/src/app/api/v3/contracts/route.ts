@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'contractId is required for action=verify' }, { status: 400 });
       }
       // Synthesise a minimal provider spec so verification can run without a live provider
-      const syntheticProvider = { endpoints: [] } as Parameters<typeof engine.verifyContract>[1];
+      const syntheticProvider = { endpoints: [] } as unknown as Parameters<typeof engine.verifyContract>[1];
       const verificationResult = await engine.verifyContract(contractId, syntheticProvider);
       logger.info('Contract verified', {
         contractId,

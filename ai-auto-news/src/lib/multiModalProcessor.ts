@@ -488,7 +488,7 @@ export class MultiModalProcessor {
 
     // Technology tags from code
     if (type === 'code' && analysis && 'language' in analysis) {
-      tags.push({ tag: (analysis as CodeAnalysis).language, category: 'language', weight: 1.0 });
+      tags.push({ tag: (analysis as unknown as CodeAnalysis).language, category: 'language', weight: 1.0 });
     }
 
     // Deduplicate

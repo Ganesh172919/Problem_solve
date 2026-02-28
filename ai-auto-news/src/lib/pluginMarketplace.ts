@@ -161,7 +161,7 @@ export class PluginMarketplace {
         plugins = plugins.filter(p => p.isVerified === filters.verified);
       }
       if (filters.minRating) {
-        plugins = plugins.filter(p => p.rating >= filters.minRating);
+        plugins = plugins.filter(p => p.rating >= (filters.minRating ?? 0));
       }
       if (filters.search) {
         const search = filters.search.toLowerCase();

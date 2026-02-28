@@ -288,7 +288,7 @@ export async function dispatchIntegrationEvent(
     } catch (err) {
       event.errorMessage = String(err);
       event.status = 'failed';
-      enqueueRetry(event, config);
+      enqueueRetry(event, { ...config.retryPolicy, id: config.id });
       results.push(event);
     }
   }

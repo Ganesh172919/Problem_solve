@@ -13,7 +13,7 @@ export function validateEmail(email: unknown): string {
     throw new ValidationError('email', 'Email is required');
   }
   const trimmed = email.trim().toLowerCase();
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const emailRegex = /^[^\s@]+@[^\s@]+(\.[^\s@]+)?$/;
   if (!emailRegex.test(trimmed)) {
     throw new ValidationError('email', 'Invalid email format');
   }
@@ -78,8 +78,8 @@ export function validateApiKeyName(name: unknown): string {
 }
 
 export function validatePagination(page: unknown, limit: unknown): { page: number; limit: number } {
-  const p = parseInt(String(page || '1'), 10);
-  const l = parseInt(String(limit || '10'), 10);
+  const p = parseInt(String(page ?? '1'), 10);
+  const l = parseInt(String(limit ?? '10'), 10);
 
   if (isNaN(p) || p < 1) {
     throw new ValidationError('page', 'Page must be a positive integer');

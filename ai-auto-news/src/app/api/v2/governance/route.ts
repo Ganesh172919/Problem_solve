@@ -16,6 +16,7 @@ import getDataGovernanceEngine, {
   type LineageGraph,
   type QualityReport,
   type ComplianceReport,
+  type PIIType,
 } from '../../../../lib/dataGovernanceEngine';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -213,7 +214,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const catalogItems = engine.searchCatalog({
       type: params.assetType as DataAsset['type'] | undefined,
       classification: params.classification as DataClassification | undefined,
-      tag: params.tag,
+      tags: params.tag ? [params.tag] : undefined,
     });
 
     const perPage = Math.min(100, Math.max(1, parseInt(params.perPage ?? '20', 10) || 20));
@@ -356,10 +357,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         type: f.type,
         nullable: f.nullable ?? true,
         description: f.description,
-        piiType: f.piiType as FieldDefinition['piiType'] | undefined,
-        tags: f.tags ?? [],
+        classifications: [] as DataClassification[],
+        piiTypes: f.piiType ? [f.piiType as PIIType] : [] as PIIType[],
         constraints: [],
-        masking: undefined,
+        maskingStrategy: undefined,
       }));
 
       registeredSchema = engine.registerSchema(assetId, fieldDefs, body.owner);
@@ -381,31 +382,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     let lineageNodesCreated = 0;
     if (body.upstreamAssets && body.upstreamAssets.length > 0) {
       const sinkNode = engine.addLineageNode({
-        name: body.name,
+        assetName: body.name,
         type: 'sink',
         assetId,
-        description: `${body.type} asset: ${body.name}`,
-        transformations: [],
-        metadata: {},
       });
 
       for (const upstreamId of body.upstreamAssets) {
         const upstreamAsset = engine.getAsset(upstreamId);
         if (upstreamAsset) {
           const sourceNode = engine.addLineageNode({
-            name: upstreamAsset.name,
+            assetName: upstreamAsset.name,
             type: 'source',
             assetId: upstreamId,
-            description: `Upstream: ${upstreamAsset.name}`,
-            transformations: [],
-            metadata: {},
           });
           engine.addLineageEdge({
-            sourceNodeId: sourceNode.id,
-            targetNodeId: sinkNode.id,
-            transformationType: 'derived',
-            description: `${upstreamAsset.name} → ${body.name}`,
-            fieldMappings: [],
+            fromNodeId: sourceNode.id,
+            toNodeId: sinkNode.id,
+            transformationDescription: `${upstreamAsset.name} → ${body.name}`,
           });
           lineageNodesCreated += 2;
         }
@@ -414,12 +407,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Record access audit entry
     engine.recordAccess({
-      userId: 'api-v2-governance',
+      actorId: 'api-v2-governance',
+      actorType: 'api-key',
       assetId,
       action: 'write',
       timestamp: now,
-      purpose: 'Asset registration via API',
-      authorized: true,
+      result: 'allowed',
+      classification: 'internal',
     });
 
     const statusLabel: RegisterAssetResponse['status'] = lineageNodesCreated > 0
@@ -462,38 +456,38 @@ function serializeLineage(graph: LineageGraph) {
   return {
     nodes: graph.nodes.map(n => ({
       id: n.id,
-      name: n.name,
+      name: n.assetName,
       type: n.type,
       assetId: n.assetId,
-      description: n.description,
+      description: n.operation,
     })),
     edges: graph.edges.map(e => ({
       id: e.id,
-      sourceNodeId: e.sourceNodeId,
-      targetNodeId: e.targetNodeId,
-      transformationType: e.transformationType,
-      description: e.description,
+      sourceNodeId: e.fromNodeId,
+      targetNodeId: e.toNodeId,
+      transformationType: e.transformationDescription,
+      description: e.transformationDescription,
     })),
-    rootAssetId: graph.rootAssetId,
-    depth: graph.depth,
-    totalNodes: graph.totalNodes,
+    assetId: graph.assetId,
+    totalNodes: graph.nodes.length,
   };
 }
 
 function serializeQualityReport(report: QualityReport) {
+  const passed = report.checks.filter(c => c.passed).length;
+  const failed = report.checks.length - passed;
   return {
     assetId: report.assetId,
     overallScore: report.overallScore,
-    dimensions: report.dimensions,
-    checksRun: report.checksRun,
-    checksPassed: report.checksPassed,
-    checksFailed: report.checksFailed,
-    issues: report.issues.map(i => ({
-      dimension: i.dimension,
-      severity: i.severity,
-      description: i.description,
-      affectedField: i.affectedField,
-      recommendation: i.recommendation,
+    checksRun: report.checks.length,
+    checksPassed: passed,
+    checksFailed: failed,
+    issues: report.checks.filter(c => !c.passed).map((c) => ({
+      dimension: c.dimension,
+      severity: c.score < 50 ? 'critical' : 'warning',
+      description: c.details,
+      affectedField: undefined,
+      recommendation: report.recommendations[0],
     })),
     generatedAt: report.generatedAt.toISOString(),
   };
@@ -534,8 +528,8 @@ function buildLineageSummary(
       assetName: asset.name,
       upstreamCount: upstreamNodes,
       downstreamCount: downstreamNodes,
-      depth: graph.depth,
-      criticalPath: graph.depth >= 3,
+      depth: graph.nodes.length,
+      criticalPath: graph.nodes.length >= 3,
     };
   } catch {
     return {
@@ -556,7 +550,7 @@ function buildComplianceSummary(
   try {
     const report: ComplianceReport = engine.runComplianceAudit(framework);
     const total = report.results.length;
-    const passed = report.results.filter(r => r.status === 'pass').length;
+    const passed = report.results.filter(r => r.passed).length;
     const failed = total - passed;
     const score = total > 0 ? Math.round((passed / total) * 100) : 0;
     return {

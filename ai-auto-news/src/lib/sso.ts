@@ -1,3 +1,4 @@
+// @ts-ignore -- no types for saml2-js
 import * as saml2 from 'saml2-js';
 import { Issuer, Strategy as OpenIDStrategy, TokenSet } from 'openid-client';
 import passport from 'passport';

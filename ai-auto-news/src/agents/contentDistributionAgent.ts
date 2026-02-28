@@ -579,6 +579,7 @@ export class ContentDistributionAgent {
         audienceSize: 15_000, avgEngagementRate: 0.035, costPerPost: 0,
         peakHours: [8, 9, 12, 17, 18, 20], peakDays: [1, 2, 3, 4, 5],
         utmSource: 'twitter', utmMedium: 'social', credentials: {},
+        rateLimit: { postsPerHour: 50, postsPerDay: 300 },
         totalPosts: 0, totalEngagement: 0, totalReach: 0,
       },
       {
@@ -588,6 +589,7 @@ export class ContentDistributionAgent {
         audienceSize: 8_500, avgEngagementRate: 0.055, costPerPost: 0,
         peakHours: [7, 8, 10, 12, 17], peakDays: [2, 3, 4],
         utmSource: 'linkedin', utmMedium: 'social', credentials: {},
+        rateLimit: { postsPerHour: 20, postsPerDay: 100 },
         totalPosts: 0, totalEngagement: 0, totalReach: 0,
       },
       {
@@ -597,6 +599,7 @@ export class ContentDistributionAgent {
         audienceSize: 22_000, avgEngagementRate: 0.28, costPerPost: 0.05,
         peakHours: [6, 7, 8, 18, 19], peakDays: [2, 4],
         utmSource: 'email', utmMedium: 'newsletter', credentials: {},
+        rateLimit: { postsPerHour: 10, postsPerDay: 50 },
         totalPosts: 0, totalEngagement: 0, totalReach: 0,
       },
       {
@@ -606,6 +609,7 @@ export class ContentDistributionAgent {
         audienceSize: 5_000, avgEngagementRate: 0.12, costPerPost: 0,
         peakHours: [6, 7, 8, 9, 18, 19, 20], peakDays: [0, 1, 2, 3, 4, 5, 6],
         utmSource: 'rss', utmMedium: 'feed', credentials: {},
+        rateLimit: { postsPerHour: 100, postsPerDay: 500 },
         totalPosts: 0, totalEngagement: 0, totalReach: 0,
       },
       {
