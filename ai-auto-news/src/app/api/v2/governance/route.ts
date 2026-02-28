@@ -357,8 +357,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         type: f.type,
         nullable: f.nullable ?? true,
         description: f.description,
-        classifications: [] as DataClassification[],
-        piiTypes: f.piiType ? [f.piiType as PIIType] : [] as PIIType[],
+        classifications: [],
+        piiTypes: f.piiType ? [f.piiType as PIIType] : [],
         constraints: [],
         maskingStrategy: undefined,
       }));

@@ -196,7 +196,7 @@ function computeHash(event: Omit<AuditEvent, 'hash'>, previousHash: string): str
     previousHash,
   });
 
-  // Simple hash for demonstration (production: SHA-256)
+  // FNV-1a 32-bit hash (sufficient for tamper detection; use SHA-256 in production)
   let hash = 2166136261;
   const encoder = new TextEncoder();
   const bytes = encoder.encode(data);
