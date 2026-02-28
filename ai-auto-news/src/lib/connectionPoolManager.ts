@@ -173,7 +173,7 @@ export class ConnectionPool<T> {
         return conn.resource;
       } catch (err: unknown) {
         const error = err instanceof Error ? err : new Error(String(err));
-        logger.error('ConnectionPool: failed to create connection', error, { name: this.config.name });
+        logger.error('ConnectionPool: failed to create connection', error instanceof Error ? error : undefined, { name: this.config.name });
         throw error;
       }
     }
@@ -340,7 +340,7 @@ export class ConnectionPool<T> {
       logger.debug('ConnectionPool: connection destroyed', { name: this.config.name, id });
     } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error(String(err));
-      logger.error('ConnectionPool: failed to destroy connection', error, { name: this.config.name, id });
+      logger.error('ConnectionPool: failed to destroy connection', error instanceof Error ? error : undefined, { name: this.config.name, id });
     }
   }
 
@@ -360,7 +360,7 @@ export class ConnectionPool<T> {
       waiter.resolve(conn.resource);
     } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error(String(err));
-      logger.error('ConnectionPool: failed to fulfill waiter', error, { name: this.config.name });
+      logger.error('ConnectionPool: failed to fulfill waiter', error instanceof Error ? error : undefined, { name: this.config.name });
     }
   }
 

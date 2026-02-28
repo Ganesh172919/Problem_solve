@@ -343,7 +343,7 @@ export async function getHealthReport(probe: ProbeType = 'readiness'): Promise<H
   cache.set('health:latest', { status, score, timestamp: Date.now() }, 60);
 
   if (status === 'unhealthy') {
-    logger.error('Platform health UNHEALTHY', { score, components: components.filter((c) => c.status === 'unhealthy').map((c) => c.name) });
+    logger.error('Platform health UNHEALTHY', undefined, { score, components: components.filter((c) => c.status === 'unhealthy').map((c) => c.name) });
 
     // Record incident
     const incidents = cache.get<Array<{ startedAt: number; resolvedAt?: number }>>('health:incidents') ?? [];

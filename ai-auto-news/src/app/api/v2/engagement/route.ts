@@ -27,7 +27,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     cache.set(cacheKey, data, 60);
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
-    logger.error('Engagement GET error', { error });
+    logger.error('Engagement GET error', undefined, { error });
     return NextResponse.json({ error: 'Failed to retrieve engagement data' }, { status: 500 });
   }
 }
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
-    logger.error('Engagement POST error', { error });
+    logger.error('Engagement POST error', undefined, { error });
     return NextResponse.json({ error: 'Failed to process engagement events' }, { status: 500 });
   }
 }

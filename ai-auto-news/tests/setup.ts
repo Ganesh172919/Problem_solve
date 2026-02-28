@@ -1,7 +1,7 @@
 import { jest } from '@jest/globals';
 
 // Mock environment variables
-process.env.NODE_ENV = 'test';
+(process.env as Record<string, string>)['NODE_ENV'] = 'test';
 process.env.DATABASE_PATH = ':memory:';
 process.env.JWT_SECRET = 'test-secret-key-for-jwt-token-generation';
 process.env.ADMIN_USERNAME = 'testadmin';
@@ -10,12 +10,12 @@ process.env.GEMINI_API_KEY = 'test-gemini-key';
 process.env.PERPLEXITY_API_KEY = 'test-perplexity-key';
 
 // Global test utilities
-global.mockConsole = () => {
+(globalThis as unknown as Record<string, unknown>)['mockConsole'] = () => {
   global.console = {
     ...console,
-    error: jest.fn(),
-    warn: jest.fn(),
-    log: jest.fn(),
+    error: jest.fn() as typeof console.error,
+    warn: jest.fn() as typeof console.warn,
+    log: jest.fn() as typeof console.log,
   };
 };
 

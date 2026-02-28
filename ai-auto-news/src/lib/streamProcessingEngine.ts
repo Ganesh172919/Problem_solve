@@ -533,7 +533,7 @@ export class StreamProcessingEngine {
     error: Error,
     strategy: ErrorStrategy,
   ): StreamEvent<T> | null {
-    logger.error('Stream processing error', error, { eventId: event.id, strategy });
+    logger.error('Stream processing error', error instanceof Error ? error : undefined, { eventId: event.id, strategy });
 
     switch (strategy) {
       case 'skip':

@@ -279,7 +279,7 @@ class AgentMemoryPersistence {
     for (const cluster of clusters) {
       if (cluster.length >= 3) {
         // Consolidate into long-term memory
-        const consolidated Memory = await this.createConsolidatedMemory(cluster);
+        const consolidatedMemory = await this.createConsolidatedMemory(cluster);
         await this.storeMemory(consolidatedMemory);
 
         // Remove original short-term memories
@@ -371,7 +371,7 @@ class AgentMemoryPersistence {
       try {
         await this.consolidateMemories();
       } catch (error) {
-        logger.error('Memory consolidation failed', error);
+        logger.error('Memory consolidation failed', error instanceof Error ? error : undefined);
       }
     }, this.consolidationIntervalMs);
   }
@@ -404,7 +404,7 @@ class AgentMemoryPersistence {
     // Limit cache size
     if (this.embeddingCache.size > 10000) {
       const firstKey = this.embeddingCache.keys().next().value;
-      this.embeddingCache.delete(firstKey);
+      this.embeddingCache.delete(firstKey!);
     }
 
     return embedding;

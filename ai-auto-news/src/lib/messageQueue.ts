@@ -1,4 +1,5 @@
-import Queue, { Job, QueueOptions, Worker, WorkerOptions } from 'bullmq';
+import { Queue, type Job, Worker } from 'bullmq';
+import type { QueueOptions, WorkerOptions } from 'bullmq';
 import { getRedisClient } from './redis';
 
 interface QueueConfig {
@@ -34,7 +35,7 @@ export class MessageQueue {
   getQueue<T = any>(name: string, options?: Partial<QueueOptions>): Queue<T> {
     if (!this.queues.has(name)) {
       const queue = new Queue<T>(name, {
-        connection: this.redisClient.getClient(),
+        connection: this.redisClient.getClient() as any,
         defaultJobOptions: {
           attempts: 3,
           backoff: {
@@ -62,7 +63,7 @@ export class MessageQueue {
     options?: JobOptions
   ): Promise<Job<T>> {
     const queue = this.getQueue<T>(queueName);
-    return await queue.add(jobName, data, options);
+    return await queue.add(jobName as any, data as any, options as any) as any as Job<T>;
   }
 
   /**
@@ -77,7 +78,7 @@ export class MessageQueue {
     }>
   ): Promise<Job<T>[]> {
     const queue = this.getQueue<T>(queueName);
-    return await queue.addBulk(jobs);
+    return await queue.addBulk(jobs as any) as any as Job<T>[];
   }
 
   /**
@@ -102,7 +103,7 @@ export class MessageQueue {
         }
       },
       {
-        connection: this.redisClient.getClient(),
+        connection: this.redisClient.getClient() as any,
         concurrency: 5,
         ...options,
       }
@@ -235,11 +236,11 @@ export class MessageQueue {
     cronExpression: string
   ): Promise<Job<T>> {
     const queue = this.getQueue<T>(queueName);
-    return await queue.add(jobName, data, {
+    return await queue.add(jobName as any, data as any, {
       repeat: {
         pattern: cronExpression,
       },
-    });
+    } as any) as any as Job<T>;
   }
 
   /**

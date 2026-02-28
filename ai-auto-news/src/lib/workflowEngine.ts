@@ -15,7 +15,7 @@
 
 import { getLogger } from './logger';
 import { getMetrics } from './metrics';
-import { getDB } from '../db';
+import { getDb as getDB } from '../db/index';
 
 const logger = getLogger();
 const metrics = getMetrics();
@@ -162,7 +162,7 @@ class WorkflowOrchestrationEngine {
 
     // Execute workflow in background
     this.runWorkflow(execution, workflow).catch((error) => {
-      logger.error('Workflow execution failed', error);
+      logger.error('Workflow execution failed', error instanceof Error ? error : undefined);
       execution.status = 'failed';
       execution.error = error.message;
       execution.completedAt = new Date();
@@ -486,7 +486,7 @@ class WorkflowOrchestrationEngine {
       const func = new Function('context', `return ${condition}`);
       return func(context);
     } catch (error) {
-      logger.error('Condition evaluation failed', error);
+      logger.error('Condition evaluation failed', error instanceof Error ? error : undefined);
       return false;
     }
   }

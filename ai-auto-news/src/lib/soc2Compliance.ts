@@ -445,7 +445,14 @@ export class SOC2ComplianceFramework {
    * Generate compliance report
    */
   generateComplianceReport(): {
-    status: ReturnType<typeof this.getComplianceStatus>;
+    status: {
+      totalControls: number;
+      implemented: number;
+      partial: number;
+      planned: number;
+      compliancePercentage: number;
+      controlsByCategory: Record<string, number>;
+    };
     controls: ComplianceControl[];
     recentAudits: number;
     openIncidents: number;
@@ -519,4 +526,4 @@ export function getSOC2Compliance(): SOC2ComplianceFramework {
   return soc2Instance;
 }
 
-export { ComplianceControl, AuditEvent, SecurityIncident, AccessLog, DataRetentionPolicy };
+export type { ComplianceControl, AuditEvent, SecurityIncident, AccessLog, DataRetentionPolicy };

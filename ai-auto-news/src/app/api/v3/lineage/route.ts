@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
     }
   } catch (error) {
-    logger.error('Lineage query failed', { assetId, error });
+    logger.error('Lineage query failed', undefined, { assetId, error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
     }
   } catch (error) {
-    logger.error('Lineage POST failed', { error });
+    logger.error('Lineage POST failed', undefined, { error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }

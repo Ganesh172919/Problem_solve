@@ -158,7 +158,7 @@ export class EncryptionService {
     const iv = crypto.randomBytes(this.ivLength);
     const key = crypto.scryptSync(this.encryptionKey, 'salt', this.keyLength);
 
-    const cipher = crypto.createCipheriv(this.algorithm, key, iv);
+    const cipher = crypto.createCipheriv(this.algorithm, key, iv) as crypto.CipherGCM;
 
     let encrypted = cipher.update(plaintext, 'utf8', 'hex');
     encrypted += cipher.final('hex');
@@ -184,7 +184,7 @@ export class EncryptionService {
     const authTag = Buffer.from(authTagHex, 'hex');
     const key = crypto.scryptSync(this.encryptionKey, 'salt', this.keyLength);
 
-    const decipher = crypto.createDecipheriv(this.algorithm, key, iv);
+    const decipher = crypto.createDecipheriv(this.algorithm, key, iv) as crypto.DecipherGCM;
     decipher.setAuthTag(authTag);
 
     let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');

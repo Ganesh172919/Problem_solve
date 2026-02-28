@@ -41,7 +41,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     cache.set(cacheKey, analysis, 300);
     return NextResponse.json(analysis, { status: 200 });
   } catch (error) {
-    logger.error('SEO GET error', { error });
+    logger.error('SEO GET error', undefined, { error });
     return NextResponse.json({ error: 'Failed to retrieve SEO analysis' }, { status: 500 });
   }
 }
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
-    logger.error('SEO POST error', { error });
+    logger.error('SEO POST error', undefined, { error });
     return NextResponse.json({ error: 'Failed to run SEO analysis and optimization' }, { status: 500 });
   }
 }

@@ -15,7 +15,7 @@
  */
 
 import { getLogger } from './logger';
-import { getDB } from '../db';
+import { getDb as getDB } from '../db/index';
 
 const logger = getLogger();
 
@@ -107,7 +107,7 @@ export interface CLVPrediction {
 export interface RevenueForecast {
   period: string;
   forecastedRevenue: number;
-  confidence Interval: { lower: number; upper: number };
+  confidenceInterval: { lower: number; upper: number };
   factors: Array<{
     factor: string;
     contribution: number;
@@ -128,7 +128,7 @@ class RealTimeAnalyticsEngine {
   /**
    * Track event in real-time
    */
-  async track Event(event: Omit<AnalyticsEvent, 'id' | 'timestamp'>): Promise<void> {
+  async trackEvent(event: Omit<AnalyticsEvent, 'id' | 'timestamp'>): Promise<void> {
     const fullEvent: AnalyticsEvent = {
       ...event,
       id: crypto.randomUUID(),
@@ -414,7 +414,7 @@ class RealTimeAnalyticsEngine {
         try {
           callback(data);
         } catch (error) {
-          logger.error('Error broadcasting event', error);
+          logger.error('Error broadcasting event', error instanceof Error ? error : undefined);
         }
       });
     }
@@ -426,7 +426,7 @@ class RealTimeAnalyticsEngine {
         try {
           callback({ eventType, data });
         } catch (error) {
-          logger.error('Error broadcasting to wildcard', error);
+          logger.error('Error broadcasting to wildcard', error instanceof Error ? error : undefined);
         }
       });
     }
@@ -484,7 +484,7 @@ class RealTimeAnalyticsEngine {
 
       logger.debug('Flushed analytics events', { count: events.length });
     } catch (error) {
-      logger.error('Failed to flush analytics events', error);
+      logger.error('Failed to flush analytics events', error instanceof Error ? error : undefined);
       this.eventBuffer.unshift(...events);
     }
   }
@@ -496,14 +496,14 @@ class RealTimeAnalyticsEngine {
     // Flush events periodically
     setInterval(() => {
       this.flushEvents().catch(error => {
-        logger.error('Background flush failed', error);
+        logger.error('Background flush failed', error instanceof Error ? error : undefined);
       });
     }, this.flushInterval);
 
     // Process analytics periodically
     setInterval(() => {
       this.processAnalytics().catch(error => {
-        logger.error('Background analytics processing failed', error);
+        logger.error('Background analytics processing failed', error instanceof Error ? error : undefined);
       });
     }, 60000); // Every minute
   }

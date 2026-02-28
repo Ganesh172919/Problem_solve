@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('Failed to retrieve privacy metrics', { userId, error });
+    logger.error('Failed to retrieve privacy metrics', undefined, { userId, error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 },
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   } catch (error) {
-    logger.error('Privacy API error', { action, userId, error });
+    logger.error('Privacy API error', undefined, { action, userId, error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 },

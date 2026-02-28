@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('Failed to list contracts', { error });
+    logger.error('Failed to list contracts', undefined, { error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 },
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'contractId is required for action=verify' }, { status: 400 });
       }
       // Synthesise a minimal provider spec so verification can run without a live provider
-      const syntheticProvider = { endpoints: [] } as Parameters<typeof engine.verifyContract>[1];
+      const syntheticProvider = { endpoints: [] } as unknown as Parameters<typeof engine.verifyContract>[1];
       const verificationResult = await engine.verifyContract(contractId, syntheticProvider);
       logger.info('Contract verified', {
         contractId,
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   } catch (error) {
-    logger.error('Contracts API error', { action, error });
+    logger.error('Contracts API error', undefined, { action, error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 },

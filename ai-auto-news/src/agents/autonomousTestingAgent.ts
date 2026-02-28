@@ -382,7 +382,7 @@ export class AutonomousTestingAgent {
       });
     } catch (err) {
       success = false;
-      logger.error('Fix plan execution failed', {
+      logger.error('Fix plan execution failed', undefined, {
         testId: plan.testId,
         error: err instanceof Error ? err.message : 'Unknown',
       });

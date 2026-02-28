@@ -34,6 +34,30 @@ class MetricsCollector {
     }
   }
 
+  // Prometheus-style API used by many modules
+  increment(name: string, _labels?: Record<string, string>): void {
+    const k = `counter:${name}`;
+    const m = this.store.get(k) ?? { samples: [], requestCount: 0, errorCount: 0 };
+    m.requestCount++;
+    this.store.set(k, m);
+  }
+
+  gauge(_name: string, _value: number, _labels?: Record<string, string>): void {
+    // no-op stub for gauge metrics
+  }
+
+  recordGauge(_name: string, _value: number, _labels?: Record<string, string>): void {
+    // alias for gauge
+  }
+
+  recordHistogram(_name: string, _value: number, _labels?: Record<string, string>): void {
+    // alias for histogram
+  }
+
+  histogram(_name: string, _value: number, _labels?: Record<string, string>): void {
+    // no-op stub for histogram metrics
+  }
+
   record(method: string, endpoint: string, durationMs: number, isError: boolean): void {
     const k = this.key(method, endpoint);
     let m = this.store.get(k);
@@ -98,3 +122,5 @@ function getMetrics(): MetricsCollector {
 }
 
 export const metrics = getMetrics();
+
+export { getMetrics };

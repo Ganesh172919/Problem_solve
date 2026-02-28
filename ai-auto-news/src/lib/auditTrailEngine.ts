@@ -196,15 +196,15 @@ function computeHash(event: Omit<AuditEvent, 'hash'>, previousHash: string): str
     previousHash,
   });
 
-  // FNV-1a-like hash for demonstration (production: SHA-256)
-  let hash = 0xcbf29ce484222325n;
+  // FNV-1a 32-bit hash (sufficient for tamper detection; use SHA-256 in production)
+  let hash = 2166136261;
   const encoder = new TextEncoder();
   const bytes = encoder.encode(data);
   for (const byte of bytes) {
-    hash ^= BigInt(byte);
-    hash = (hash * 0x100000001b3n) & 0xffffffffffffffffn;
+    hash ^= byte;
+    hash = (hash * 16777619) >>> 0;
   }
-  return hash.toString(16).padStart(16, '0').repeat(4);
+  return hash.toString(16).padStart(8, '0').repeat(4);
 }
 
 function generateEventId(): string {
@@ -312,7 +312,7 @@ export function verifyChainIntegrity(events: AuditEvent[]): boolean {
   const sorted = [...events].sort((a, b) => a.sequenceNumber - b.sequenceNumber);
   for (let i = 1; i < sorted.length; i++) {
     if (sorted[i].previousHash !== sorted[i - 1].hash) {
-      logger.error('Audit chain integrity violation', {
+      logger.error('Audit chain integrity violation', undefined, {
         seq: sorted[i].sequenceNumber,
         expected: sorted[i - 1].hash,
         got: sorted[i].previousHash,

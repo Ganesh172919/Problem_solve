@@ -19,7 +19,7 @@ import { getLogger } from './logger';
 import { getMetrics } from './metrics';
 import { getRBACEngine } from './rbac';
 import { getAdvancedCache } from './advancedCaching';
-import { getCircuitBreaker } from './circuitBreaker';
+import { getCircuitBreakerManager as getCircuitBreaker } from './circuitBreaker';
 
 const logger = getLogger();
 const metrics = getMetrics();
@@ -68,7 +68,7 @@ export interface RateLimitConfig {
 
 export interface CacheConfig {
   ttl: number;
-  key Generator?: (context: RequestContext) => string;
+  keyGenerator?: (context: RequestContext) => string;
   vary?: string[]; // Cache vary by headers
 }
 
@@ -196,7 +196,7 @@ class APIGateway {
 
       return response;
     } catch (error: any) {
-      logger.error('Request failed', error);
+      logger.error('Request failed', error instanceof Error ? error : undefined);
 
       const duration = Date.now() - startTime;
       metrics.histogram('api.request.duration', duration, {

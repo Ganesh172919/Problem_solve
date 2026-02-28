@@ -458,7 +458,7 @@ export class RealTimeGraphProcessor {
               activationProb = edge ? edge.weight : 0.1;
             } else {
               // Linear threshold: sum of influence from active neighbors
-              const activeNeighbors = Array.from(graph.inAdjacency.get(neighbor) ?? new Set()).filter(n => activated.has(n));
+              const activeNeighbors = Array.from(graph.inAdjacency.get(neighbor) ?? new Set<string>()).filter(n => activated.has(n));
               activationProb = activeNeighbors.length / Math.max(1, (graph.inAdjacency.get(neighbor)?.size ?? 1));
             }
 

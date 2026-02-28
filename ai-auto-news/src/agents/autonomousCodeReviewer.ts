@@ -229,11 +229,11 @@ export class AutonomousCodeReviewer {
 
     const cached = await cache.get<ReviewResult>(cacheKey);
     if (cached) {
-      logger.debug({ reviewId: cached.id }, 'Returning cached review result');
+      logger.debug('Returning cached review result', { reviewId: cached.id });
       return cached;
     }
 
-    logger.info({ reviewId, fileCount: files.length }, 'Starting code review');
+    logger.info('Starting code review', { reviewId, fileCount: files.length });
 
     const filteredFiles = files.filter(f => {
       if (config.skipPaths?.some(p => f.path.includes(p))) return false;
@@ -264,7 +264,7 @@ export class AutonomousCodeReviewer {
     };
 
     await cache.set(cacheKey, result, this.CACHE_TTL);
-    logger.info({ reviewId, issueCount: issues.length, securityIssues: secVulns.length, grade: qualityScore.grade }, 'Code review complete');
+    logger.info('Code review complete', { reviewId, issueCount: issues.length, securityIssues: secVulns.length, grade: qualityScore.grade });
     return result;
   }
 
@@ -283,7 +283,7 @@ export class AutonomousCodeReviewer {
       return order.indexOf(a.severity) - order.indexOf(b.severity);
     });
 
-    logger.info({ fileCount: files.length, vulnerabilityCount: vulnerabilities.length }, 'Security analysis complete');
+    logger.info('Security analysis complete', { fileCount: files.length, vulnerabilityCount: vulnerabilities.length });
     return vulnerabilities;
   }
 
@@ -302,7 +302,7 @@ export class AutonomousCodeReviewer {
       return order.indexOf(a.severity) - order.indexOf(b.severity);
     });
 
-    logger.info({ fileCount: files.length, perfIssueCount: issues.length }, 'Performance analysis complete');
+    logger.info('Performance analysis complete', { fileCount: files.length, perfIssueCount: issues.length });
     return issues;
   }
 
@@ -319,7 +319,7 @@ export class AutonomousCodeReviewer {
       violations.push(...detected);
     }
 
-    logger.info({ fileCount: files.length, violationCount: violations.length, pattern }, 'Architecture compliance check complete');
+    logger.info('Architecture compliance check complete', { fileCount: files.length, violationCount: violations.length, pattern });
     return violations;
   }
 
@@ -332,7 +332,7 @@ export class AutonomousCodeReviewer {
     config: ReviewConfig = {},
   ): Promise<PRReview> {
     const startMs = Date.now();
-    logger.info({ prTitle, fileCount: files.length }, 'Generating PR review');
+    logger.info('Generating PR review', { prTitle, fileCount: files.length });
 
     const reviewResult = await this.reviewCode(files, config);
 
@@ -419,7 +419,7 @@ export class AutonomousCodeReviewer {
       reviewDurationMs: Date.now() - startMs,
     };
 
-    logger.info({ prTitle, status, blockers: blockers.length, comments: inlineComments.length }, 'PR review generated');
+    logger.info('PR review generated', { prTitle, status, blockers: blockers.length, comments: inlineComments.length });
     return review;
   }
 
@@ -429,7 +429,7 @@ export class AutonomousCodeReviewer {
     files: CodeFile[],
     config: ReviewConfig = {},
   ): Promise<TechnicalDebtReport> {
-    logger.info({ fileCount: files.length }, 'Estimating technical debt');
+    logger.info('Estimating technical debt', { fileCount: files.length });
 
     const reviewResult = await this.reviewCode(files, config);
     const allIssues = [
@@ -493,7 +493,7 @@ export class AutonomousCodeReviewer {
       generatedAt: new Date(),
     };
 
-    logger.info({ totalItems: report.totalItems, totalHours, debtRatio }, 'Technical debt estimation complete');
+    logger.info('Technical debt estimation complete', { totalItems: report.totalItems, totalHours, debtRatio });
     return report;
   }
 

@@ -224,7 +224,7 @@ export class SeoOptimizationAgent {
         if (task.status === 'failed') {
           failed++;
           errors.push({ contentId: task.contentId, error: message });
-          logger.error('SEO task failed', { contentId: task.contentId, error: message });
+          logger.error('SEO task failed', undefined, { contentId: task.contentId, error: message });
         } else {
           this.queue.unshift(task);
         }
@@ -555,7 +555,7 @@ export class SeoOptimizationAgent {
           title: rec.title,
         });
       } catch (err) {
-        logger.error('Failed to apply SEO optimization', {
+        logger.error('Failed to apply SEO optimization', undefined, {
           contentId,
           recId: rec.id,
           error: err instanceof Error ? err.message : String(err),

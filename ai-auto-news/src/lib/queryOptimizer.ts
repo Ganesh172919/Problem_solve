@@ -22,7 +22,7 @@ export interface QueryPlan {
   executionPlan: ExecutionNode[];
   estimatedCost: number;
   estimatedRows: number;
-  indexes Used: string[];
+  indexesUsed: string[];
   recommendations: QueryRecommendation[];
   createdAt: Date;
 }
@@ -242,7 +242,7 @@ class IntelligentQueryOptimizer {
 
       return true;
     } catch (error) {
-      logger.error('Failed to create index', error);
+      logger.error('Failed to create index', error instanceof Error ? error : undefined);
       return false;
     }
   }

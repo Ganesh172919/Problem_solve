@@ -221,7 +221,7 @@ class IntelligentAPIGateway {
           429,
           'Rate limit exceeded',
           startTime,
-          { 'Retry-After': rateLimitResult.retryAfter }
+          { 'Retry-After': rateLimitResult.retryAfter ?? '' }
         );
       }
 
@@ -277,7 +277,7 @@ class IntelligentAPIGateway {
 
       return transformedResponse;
     } catch (error: any) {
-      logger.error('Request handling failed', { requestId: request.id, error: error.message });
+      logger.error('Request handling failed', undefined, { requestId: request.id, error: error.message });
       return this.createErrorResponse(500, 'Internal server error', startTime);
     }
   }
@@ -391,7 +391,7 @@ class IntelligentAPIGateway {
   }
 
   private async incrementCounter(key: string, ttl: number): Promise<number> {
-    const current = (await this.cache.get(key)) || 0;
+    const current = (await this.cache.get<number>(key)) || 0;
     const newValue = current + 1;
     await this.cache.set(key, newValue, ttl);
     return newValue;

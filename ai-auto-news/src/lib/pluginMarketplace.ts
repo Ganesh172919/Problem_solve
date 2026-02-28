@@ -10,7 +10,7 @@ interface Plugin {
   category: string;
   tags: string[];
   price: number;
-  pricing Model: 'free' | 'one-time' | 'subscription' | 'usage-based';
+  pricingModel: 'free' | 'one-time' | 'subscription' | 'usage-based';
   downloads: number;
   rating: number;
   ratingCount: number;
@@ -161,7 +161,7 @@ export class PluginMarketplace {
         plugins = plugins.filter(p => p.isVerified === filters.verified);
       }
       if (filters.minRating) {
-        plugins = plugins.filter(p => p.rating >= filters.minRating);
+        plugins = plugins.filter(p => p.rating >= (filters.minRating ?? 0));
       }
       if (filters.search) {
         const search = filters.search.toLowerCase();
@@ -465,4 +465,4 @@ export function getPluginMarketplace(): PluginMarketplace {
   return marketplaceInstance;
 }
 
-export { Plugin, PluginManifest, PluginInstallation, PluginReview };
+export type { Plugin, PluginManifest, PluginInstallation, PluginReview };

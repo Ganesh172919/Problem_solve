@@ -452,7 +452,7 @@ export class EventBus {
 
   private handleFailure(event: StoredEvent, handlerId: string, error: Error): void {
     this.metrics.failures++;
-    logger.error('EventBus: handler failed', error, {
+    logger.error('EventBus: handler failed', error instanceof Error ? error : undefined, {
       topic: event.topic,
       eventId: event.id,
       handlerId,

@@ -228,11 +228,11 @@ export class MarketAnalysisAgent {
 
     const cached = await cache.get<CompetitorProfile>(cacheKey);
     if (cached) {
-      logger.info({ name, domain }, 'Returning cached competitor profile');
+      logger.info('Returning cached competitor profile', { name, domain });
       return cached;
     }
 
-    logger.info({ name, domain, tier }, 'Analyzing competitor');
+    logger.info('Analyzing competitor', { name, domain, tier });
 
     const profile: CompetitorProfile = {
       id: uuidv4(),
@@ -258,17 +258,15 @@ export class MarketAnalysisAgent {
     // Embed the competitor profile for semantic search
     await this.vectorDb.upsert({
       namespace: 'market-analysis',
-      vectors: [{
-        id: `competitor:${profile.id}`,
-        values: this.textToVector(`${name} ${profile.description} ${profile.keyFeatures.join(' ')}`),
-        metadata: { type: 'competitor', name, domain, tier, updatedAt: new Date().toISOString() },
-      }],
+      id: `competitor:${profile.id}`,
+      vector: this.textToVector(`${name} ${profile.description} ${profile.keyFeatures.join(' ')}`),
+      metadata: { type: 'competitor', name, domain, tier, updatedAt: new Date().toISOString() },
     });
 
     const ttl = (config.refreshCacheHours ?? this.CACHE_TTL_HOURS) * 3600;
     await cache.set(cacheKey, profile, ttl);
 
-    logger.info({ competitorId: profile.id, name }, 'Competitor analysis complete');
+    logger.info('Competitor analysis complete', { competitorId: profile.id, name });
     return profile;
   }
 
@@ -282,7 +280,7 @@ export class MarketAnalysisAgent {
     const cached = await cache.get<MarketTrend[]>(cacheKey);
     if (cached) return cached;
 
-    logger.info({ segment }, 'Tracking market trends');
+    logger.info('Tracking market trends', { segment });
 
     const trendTemplates = this.buildTrendTemplates(segment);
     const trends: MarketTrend[] = trendTemplates.map((t, idx) => ({
@@ -305,7 +303,7 @@ export class MarketAnalysisAgent {
     const ttl = (config.refreshCacheHours ?? this.CACHE_TTL_HOURS) * 3600;
     await cache.set(cacheKey, trends, ttl);
 
-    logger.info({ segment, trendCount: trends.length }, 'Trend tracking complete');
+    logger.info('Trend tracking complete', { segment, trendCount: trends.length });
     return trends;
   }
 
@@ -323,7 +321,7 @@ export class MarketAnalysisAgent {
     const cached = await cache.get<SWOTAnalysis>(cacheKey);
     if (cached) return cached;
 
-    logger.info({ subject }, 'Generating SWOT analysis');
+    logger.info('Generating SWOT analysis', { subject });
 
     const strengths: SWOTItem[] = [
       {
@@ -421,7 +419,7 @@ export class MarketAnalysisAgent {
     };
 
     await cache.set(cacheKey, swot, this.CACHE_TTL_HOURS * 3600);
-    logger.info({ subject, overallScore }, 'SWOT analysis generated');
+    logger.info('SWOT analysis generated', { subject, overallScore });
     return swot;
   }
 
@@ -438,7 +436,7 @@ export class MarketAnalysisAgent {
       competitiveIntensity?: 'low' | 'medium' | 'high' | 'extreme';
     } = {},
   ): Promise<MarketOpportunity> {
-    logger.info({ title, segment }, 'Scoring market opportunity');
+    logger.info('Scoring market opportunity', { title, segment });
 
     const competitiveMultiplier = {
       low: 1.3, medium: 1.0, high: 0.75, extreme: 0.5,
@@ -487,7 +485,7 @@ export class MarketAnalysisAgent {
       identifiedAt: new Date(),
     };
 
-    logger.info({ opportunityId: opportunity.id, score: finalScore, conviction }, 'Opportunity scored');
+    logger.info('Opportunity scored', { opportunityId: opportunity.id, score: finalScore, conviction });
     return opportunity;
   }
 
@@ -501,11 +499,11 @@ export class MarketAnalysisAgent {
 
     const cached = await cache.get<MarketReport>(cacheKey);
     if (cached) {
-      logger.info({ reportId: cached.id }, 'Returning cached market report');
+      logger.info('Returning cached market report', { reportId: cached.id });
       return cached;
     }
 
-    logger.info({ config }, 'Generating comprehensive market report');
+    logger.info('Generating comprehensive market report', { config });
 
     const segments: MarketSegment[] = config.targetSegments ?? ['enterprise', 'smb', 'startup'];
 
@@ -577,7 +575,7 @@ export class MarketAnalysisAgent {
     };
 
     await cache.set(cacheKey, report, this.CACHE_TTL_HOURS * 3600);
-    logger.info({ reportId, segmentCount: segments.length, competitorCount: competitors.length }, 'Market report generated');
+    logger.info('Market report generated', { reportId, segmentCount: segments.length, competitorCount: competitors.length });
     return report;
   }
 
@@ -591,7 +589,7 @@ export class MarketAnalysisAgent {
     const cached = await cache.get<CompetitivePositioningMatrix>(cacheKey);
     if (cached) return cached;
 
-    logger.info({ competitorCount: competitors.length, axes }, 'Building competitive positioning matrix');
+    logger.info('Building competitive positioning matrix', { competitorCount: competitors.length, axes });
 
     const positions: PositioningEntry[] = competitors.map((c, idx) => {
       const xScore = 30 + idx * 12 + Math.floor(c.keyFeatures.length * 3);

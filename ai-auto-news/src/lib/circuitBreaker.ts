@@ -307,4 +307,4 @@ export const SERVICE_BREAKERS = {
   EMAIL: 'email',
 };
 
-export { CircuitState, CircuitBreakerConfig };
+export type { CircuitState, CircuitBreakerConfig };

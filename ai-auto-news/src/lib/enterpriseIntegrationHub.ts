@@ -288,7 +288,7 @@ export async function dispatchIntegrationEvent(
     } catch (err) {
       event.errorMessage = String(err);
       event.status = 'failed';
-      enqueueRetry(event, config);
+      enqueueRetry(event, { ...config.retryPolicy, id: config.id });
       results.push(event);
     }
   }
@@ -327,7 +327,7 @@ function enqueueRetry(event: IntegrationEvent, config: RetryPolicy & { id: Integ
   if (event.attempt >= event.maxAttempts) {
     event.status = 'dead_letter';
     recordDeadLetter(event);
-    logger.error('Event moved to dead letter queue', {
+    logger.error('Event moved to dead letter queue', undefined, {
       eventId: event.id,
       integrationId: event.integrationId,
     });

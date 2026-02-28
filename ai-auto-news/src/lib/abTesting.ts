@@ -68,9 +68,9 @@ export class ABTestingFramework {
       id,
       status: 'draft',
       currentSampleSize: 0,
-      confidenceLevel: 0,
       createdAt: new Date(),
       ...test,
+      confidenceLevel: test.confidenceLevel ?? 0,
       variants: test.variants.map(v => ({
         ...v,
         metrics: {
@@ -398,4 +398,4 @@ export function getABTestingFramework(): ABTestingFramework {
   return abTestingInstance;
 }
 
-export { ABTest, ABVariant, ABMetrics, ABEvent };
+export type { ABTest, ABVariant, ABMetrics, ABEvent };

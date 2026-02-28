@@ -69,7 +69,7 @@ export class EmailService {
     this.fromEmail = process.env.FROM_EMAIL || 'noreply@yourdomain.com';
     this.fromName = process.env.FROM_NAME || 'AI Auto News';
 
-    this.transporter = nodemailer.createTransporter(config);
+    this.transporter = nodemailer.createTransport(config);
     this.initializeTemplates();
   }
 
@@ -391,4 +391,4 @@ export function getEmailService(): EmailService {
   return emailServiceInstance;
 }
 
-export { EmailTemplate, EmailOptions, BulkEmailJob };
+export type { EmailTemplate, EmailOptions, BulkEmailJob };

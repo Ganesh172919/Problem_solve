@@ -536,7 +536,7 @@ class DistributedTaskScheduler {
       if (!task || task.status === 'cancelled') continue;
       // Fire and forget (in a real system this would be message-queue based)
       this.executeTask(task, worker.id).catch(err =>
-        logger.error('Unhandled task execution error', { taskId: task.id, error: String(err) })
+        logger.error('Unhandled task execution error', undefined, { taskId: task.id, error: String(err) })
       );
     }
   }

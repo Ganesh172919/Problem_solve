@@ -10,13 +10,13 @@
  * - Custom metric billing
  */
 
-import { getDB } from '../db';
+import { getDb as getDB } from '../db/index';
 import { getLogger } from './logger';
 import { Stripe } from 'stripe';
 
 const logger = getLogger();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2024-11-20.acacia',
+  apiVersion: '2023-10-16',
 });
 
 export interface MeterEvent {
@@ -382,7 +382,7 @@ class MeteredBillingEngine {
         value: event.value,
       });
     } catch (error) {
-      logger.error('Failed to send to Stripe meter', error);
+      logger.error('Failed to send to Stripe meter', error instanceof Error ? error : undefined);
     }
   }
 
@@ -420,7 +420,7 @@ class MeteredBillingEngine {
 
       logger.debug('Flushed usage events', { count: events.length });
     } catch (error) {
-      logger.error('Failed to flush usage events', error);
+      logger.error('Failed to flush usage events', error instanceof Error ? error : undefined);
       // Re-add to buffer
       this.eventBuffer.unshift(...events);
     }

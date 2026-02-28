@@ -273,7 +273,7 @@ export async function benchmark(
   };
 
   if (regressionStatus === 'critical_regression') {
-    logger.error('Critical performance regression detected', {
+    logger.error('Critical performance regression detected', undefined, {
       name: options.name,
       regressionPct: regressionPct?.toFixed(1),
       current: latency.meanMs,
@@ -318,7 +318,7 @@ export async function runSuite(suite: BenchmarkSuite): Promise<BenchmarkReport> 
       });
       results.push(result);
     } catch (err) {
-      logger.error('Benchmark errored', { name: def.name, error: err });
+      logger.error('Benchmark errored', undefined, { name: def.name, error: err });
     }
   }
 

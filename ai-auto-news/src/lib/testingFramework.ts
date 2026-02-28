@@ -153,7 +153,7 @@ class ComprehensiveTestingFramework {
     } catch (error: any) {
       run.status = 'failed';
       run.completedAt = new Date();
-      logger.error('Test suite failed', error);
+      logger.error('Test suite failed', error instanceof Error ? error : undefined);
     } finally {
       // Run teardown
       if (suite.teardown) {
@@ -238,7 +238,7 @@ class ComprehensiveTestingFramework {
           result.status = 'failed';
           result.duration = Date.now() - startTime;
 
-          logger.error('Test failed', {
+          logger.error('Test failed', undefined, {
             testId: test.id,
             error: error.message,
           });
@@ -258,7 +258,7 @@ class ComprehensiveTestingFramework {
    * Load Testing
    */
   async runLoadTest(config: LoadTestConfig): Promise<LoadTestResult> {
-    logger.info('Starting load test', config);
+    logger.info('Starting load test', config as unknown as Record<string, unknown>);
 
     const results: LoadTestResult = {
       config,
@@ -380,7 +380,7 @@ class ComprehensiveTestingFramework {
    * Contract Testing
    */
   async runContractTest(config: ContractTestConfig): Promise<ContractTestResult> {
-    logger.info('Starting contract test', config);
+    logger.info('Starting contract test', config as unknown as Record<string, unknown>);
 
     const result: ContractTestResult = {
       provider: config.provider,

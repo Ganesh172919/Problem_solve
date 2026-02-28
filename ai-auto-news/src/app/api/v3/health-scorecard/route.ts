@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
           overallScore: fullScorecard.overallScore,
           grade: fullScorecard.grade,
           dimensions,
-          slaCompliance: fullScorecard.slaCompliance,
+          slaCompliant: fullScorecard.slaCompliant,
           generatedAt: fullScorecard.generatedAt,
         },
         recentEvents: recentEvents.map(event => ({
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('Failed to retrieve health scorecard', { dimension, error });
+    logger.error('Failed to retrieve health scorecard', undefined, { dimension, error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 },
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'dimension is required for action=get_trend' }, { status: 400 });
       }
       const trend = scorecard.getHealthTrend(dimension as HealthDimension, 60);
-      logger.info('Trend retrieved', { dimension, direction: trend.direction });
+      logger.info('Trend retrieved', { dimension, changeRate: trend.changeRate });
       return NextResponse.json({ success: true, data: { trend } });
     }
 
@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   } catch (error) {
-    logger.error('Health scorecard API error', { action, error });
+    logger.error('Health scorecard API error', undefined, { action, error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 },

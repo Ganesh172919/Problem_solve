@@ -161,7 +161,7 @@ class SelfHealingSystem {
       this.metrics.recordGauge(`health.${check.id}.response_time`, duration);
       this.metrics.recordGauge(`health.${check.id}.healthy`, status.healthy ? 1 : 0);
     } catch (error: any) {
-      logger.error('Health check failed', { checkId, error: error.message });
+      logger.error('Health check failed', undefined, { checkId, error: error.message });
 
       await this.handleUnhealthyCheck(check, {
         healthy: false,
@@ -299,7 +299,7 @@ class SelfHealingSystem {
         logger.warn('Healing executed but verification failed', { failureId });
       }
     } else {
-      logger.error('Healing failed', { failureId, errors: result.errors });
+      logger.error('Healing failed', undefined, { failureId, errors: result.errors });
     }
 
     // Store result
@@ -525,7 +525,7 @@ class SelfHealingSystem {
         rollbackPerformed,
       };
     } catch (error: any) {
-      logger.error('Healing action failed', { actionId: action.id, error: error.message });
+      logger.error('Healing action failed', undefined, { actionId: action.id, error: error.message });
       errors.push(error.message);
 
       // Attempt rollback

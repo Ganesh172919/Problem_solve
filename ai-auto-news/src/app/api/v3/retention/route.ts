@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Unknown action. Use: metrics | at_risk' }, { status: 400 });
     }
   } catch (error) {
-    logger.error('Retention GET failed', { tenantId, error });
+    logger.error('Retention GET failed', undefined, { tenantId, error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
         );
     }
   } catch (error) {
-    logger.error('Retention POST failed', { userId, action, error });
+    logger.error('Retention POST failed', undefined, { userId, action, error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }

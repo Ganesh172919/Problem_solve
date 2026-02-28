@@ -174,7 +174,7 @@ function checkBudgetViolations(event: TokenCostEvent): void {
     if (!status) continue;
 
     if (status.usedPct >= 1.0 && budget.hardStop) {
-      logger.error('Budget hard stop triggered', { budgetId: budget.id, scope: budget.scope, scopeId: budget.scopeId });
+      logger.error('Budget hard stop triggered', undefined, { budgetId: budget.id, scope: budget.scope, scopeId: budget.scopeId });
     } else if (status.usedPct >= budget.alertThresholdPct && !status.alertTriggered) {
       logger.warn('Budget alert threshold reached', {
         budgetId: budget.id,

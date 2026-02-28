@@ -13,7 +13,7 @@ export function validateEmail(email: unknown): string {
     throw new ValidationError('email', 'Email is required');
   }
   const trimmed = email.trim().toLowerCase();
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const emailRegex = /^[^\s@]+@[^\s@]+(\.[^\s@]+)?$/;
   if (!emailRegex.test(trimmed)) {
     throw new ValidationError('email', 'Invalid email format');
   }
@@ -78,8 +78,8 @@ export function validateApiKeyName(name: unknown): string {
 }
 
 export function validatePagination(page: unknown, limit: unknown): { page: number; limit: number } {
-  const p = parseInt(String(page || '1'), 10);
-  const l = parseInt(String(limit || '10'), 10);
+  const p = parseInt(String(page ?? '1'), 10);
+  const l = parseInt(String(limit ?? '10'), 10);
 
   if (isNaN(p) || p < 1) {
     throw new ValidationError('page', 'Page must be a positive integer');
@@ -128,4 +128,13 @@ export function validateScopes(scopes: unknown): string[] {
 export function sanitizeString(value: unknown, maxLength = 1000): string {
   if (typeof value !== 'string') return '';
   return value.trim().substring(0, maxLength);
+}
+
+export function validateApiKey(key: unknown): boolean {
+  if (typeof key !== 'string' || key.length === 0) return false;
+  return /^aian_[a-zA-Z0-9]{64}$/.test(key);
+}
+
+export function validateTier(tier: unknown): boolean {
+  return tier === 'free' || tier === 'pro' || tier === 'enterprise';
 }

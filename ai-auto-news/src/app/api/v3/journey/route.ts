@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
       }
       case 'attribution': {
         const journeyId = searchParams.get('journeyId');
-        const model = (searchParams.get('model') ?? 'linear') as import('@/lib/customerJourneyMapper').AttributionModel;
+        const model = (searchParams.get('model') ?? 'linear') as unknown as import('@/lib/customerJourneyMapper').AttributionModel;
         if (!journeyId) {
           return NextResponse.json({ error: 'journeyId is required for attribution' }, { status: 400 });
         }
@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
     }
   } catch (error) {
-    logger.error('Journey GET failed', { userId, error });
+    logger.error('Journey GET failed', undefined, { userId, error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
     }
   } catch (error) {
-    logger.error('Journey POST failed', { userId, error });
+    logger.error('Journey POST failed', undefined, { userId, error });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }

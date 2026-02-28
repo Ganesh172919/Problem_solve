@@ -69,6 +69,7 @@ export interface StructureAnalysis {
   paragraphLengths: number[];
   avgParagraphWords: number;
   longestParagraphWords: number;
+  paragraphCount: number;
 }
 
 export interface SEOAnalysis {
@@ -173,6 +174,7 @@ function analyzeStructure(text: string, title?: string): StructureAnalysis {
     paragraphLengths,
     avgParagraphWords: paragraphLengths.length > 0 ? paragraphLengths.reduce((s, l) => s + l, 0) / paragraphLengths.length : 0,
     longestParagraphWords: Math.max(...paragraphLengths, 0),
+    paragraphCount: paragraphLengths.length,
   };
 }
 

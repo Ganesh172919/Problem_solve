@@ -214,7 +214,7 @@ function notifyListeners(key: string, event: ConfigChangeEvent, tenantId?: strin
     try {
       listener(event);
     } catch (err) {
-      logger.error('Config listener error', { key, error: err });
+      logger.error('Config listener error', undefined, { key, error: err });
     }
   }
 }

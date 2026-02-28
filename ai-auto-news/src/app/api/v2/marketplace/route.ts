@@ -132,7 +132,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const cacheKey = `api:v2:marketplace:list:${JSON.stringify(params)}`;
     const cached = await cache.get<ListingsResponse>(cacheKey);
     if (cached) {
-      logger.debug({ category: params.category, search: params.search }, 'Returning cached marketplace listings');
+      logger.debug('Returning cached marketplace listings', { category: params.category, search: params.search });
       return NextResponse.json(cached, {
         headers: { 'X-Cache': 'HIT', 'X-Response-Time': `${Date.now() - startMs}ms` },
       });
@@ -144,17 +144,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const statusParam = VALID_STATUSES.includes(params.status as ListingStatus) ? (params.status as ListingStatus) : 'published';
 
     const searchResult = orchestrator.search({
-      query: params.search,
+      term: params.search,
       category: params.category as ListingCategory | undefined,
-      status: statusParam,
       pricingModel: params.pricingModel as PricingModel | undefined,
       featured: params.featured === 'true' ? true : params.featured === 'false' ? false : undefined,
       page,
       perPage,
       sortBy: params.sortBy === 'newest' ? 'newest'
         : params.sortBy === 'rating' ? 'rating'
-        : params.sortBy === 'name' ? 'name'
-        : 'installs',
+        : params.sortBy === 'installs' ? 'installs'
+        : 'relevance',
     });
 
     const items: ListingItem[] = searchResult.listings.map(listing => toListingItem(listing));
@@ -179,13 +178,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     };
 
     await cache.set(cacheKey, response, 300); // cache 5 minutes
-    logger.info({ total: searchResult.total, page, durationMs: Date.now() - startMs }, 'Marketplace listing GET complete');
+    logger.info('Marketplace listing GET complete', { total: searchResult.total, page, durationMs: Date.now() - startMs });
 
     return NextResponse.json(response, {
       headers: { 'X-Cache': 'MISS', 'X-Response-Time': `${Date.now() - startMs}ms` },
     });
   } catch (error) {
-    logger.error({ error, durationMs: Date.now() - startMs }, 'Marketplace GET error');
+    logger.error('Marketplace GET error', undefined, { error, durationMs: Date.now() - startMs });
     return NextResponse.json(
       { success: false, error: 'Failed to retrieve marketplace listings', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 },
@@ -225,12 +224,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const initialVersion: AppVersion = {
       version: body.version ?? '1.0.0',
-      releaseDate: now,
-      changelog: body.changelog ?? 'Initial release',
-      downloadUrl: `https://marketplace.example.com/downloads/${listingId}/v${body.version ?? '1.0.0'}`,
+      releasedAt: now,
+      releaseNotes: body.changelog ?? 'Initial release',
       checksum: '',
       deprecated: false,
-      platformCompatibility: '>=1.0.0',
+      downloadCount: 0,
     };
 
     const pricing: PricingConfig = {
@@ -273,17 +271,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       stats: {
         totalInstalls: 0,
         activeInstalls: 0,
+        totalDownloads: 0,
         avgRating: 0,
-        ratingCount: 0,
-        weeklyDownloads: 0,
-        totalRevenue: 0,
+        reviewCount: 0,
+        weeklyInstalls: 0,
+        monthlyActiveUsers: 0,
+        revenue: 0,
       },
       securityScan: {
         status: 'pending',
         scannedAt: now,
         issues: [],
-        passedChecks: [],
-        failedChecks: [],
         score: 0,
       },
     };
@@ -300,14 +298,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       submittedAt: now.toISOString(),
     };
 
-    logger.info({ listingId, slug, developerName: body.developerName, durationMs: Date.now() - startMs }, 'Marketplace listing submitted');
+    logger.info('Marketplace listing submitted', { listingId, slug, developerName: body.developerName, durationMs: Date.now() - startMs });
 
     return NextResponse.json(response, {
       status: 201,
       headers: { 'X-Response-Time': `${Date.now() - startMs}ms` },
     });
   } catch (error) {
-    logger.error({ error, durationMs: Date.now() - startMs }, 'Marketplace POST error');
+    logger.error('Marketplace POST error', undefined, { error, durationMs: Date.now() - startMs });
     return NextResponse.json(
       { success: false, error: 'Failed to submit marketplace listing', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 },
@@ -333,8 +331,8 @@ function toListingItem(listing: MarketplaceListing): ListingItem {
       currency: listing.pricing.currency,
     },
     latestVersion: listing.latestVersion,
-    rating: listing.stats.ratingCount > 0 ? Math.round(listing.stats.avgRating * 10) / 10 : undefined,
-    ratingCount: listing.stats.ratingCount,
+    rating: listing.stats.reviewCount > 0 ? Math.round(listing.stats.avgRating * 10) / 10 : undefined,
+    ratingCount: listing.stats.reviewCount,
     installCount: listing.stats.totalInstalls,
     featured: listing.featured,
     iconUrl: listing.iconUrl,

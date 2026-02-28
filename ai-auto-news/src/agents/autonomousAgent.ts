@@ -9,7 +9,7 @@
  * - Self-evaluate and iterate
  */
 
-import { getLogger } from './logger';
+import { getLogger } from '../lib/logger';
 
 const logger = getLogger();
 
@@ -43,7 +43,7 @@ export interface SubGoal {
   description: string;
   type: 'research' | 'design' | 'implement' | 'test' | 'validate';
   dependencies: string[];
-  estimated Tokens: number;
+  estimatedTokens: number;
   status: 'pending' | 'in_progress' | 'completed' | 'failed';
   output?: any;
 }
@@ -73,7 +73,7 @@ export interface AgentOutput {
   status: 'success' | 'partial' | 'failed';
   artifacts: Map<string, any>;
   executionLog: ExecutionStep[];
-  quality Score: number;
+  qualityScore: number;
   suggestions: string[];
   nextSteps?: string[];
 }
@@ -116,7 +116,7 @@ class AutonomousAgent {
 
     try {
       // Step 1: Decompose task into plan
-      const plan = await this.decompose Task(task);
+      const plan = await this.decomposeTask(task);
 
       // Step 2: Execute plan with iteration
       const artifacts = await this.executePlan(plan, task);
@@ -139,7 +139,7 @@ class AutonomousAgent {
         suggestions,
       };
     } catch (error: any) {
-      logger.error('Agent task failed', error);
+      logger.error('Agent task failed', error instanceof Error ? error : undefined);
       return {
         taskId: task.id,
         status: 'failed',
@@ -245,7 +245,7 @@ class AutonomousAgent {
 
         iteration++;
       } catch (error: any) {
-        logger.error(`Iteration ${iteration + 1} failed`, error);
+        logger.error(`Iteration ${iteration + 1} failed`, error instanceof Error ? error : undefined);
         iteration++;
       }
     }

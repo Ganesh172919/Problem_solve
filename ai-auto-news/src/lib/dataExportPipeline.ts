@@ -327,7 +327,7 @@ export async function runExportJob(jobId: string): Promise<ExportJob> {
     job.status = 'failed';
     job.error = String(err);
     job.progress = 0;
-    logger.error('Export job failed', { jobId, error: err });
+    logger.error('Export job failed', undefined, { jobId, error: err });
     throw err;
   }
 

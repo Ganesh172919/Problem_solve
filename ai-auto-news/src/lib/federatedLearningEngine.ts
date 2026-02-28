@@ -44,7 +44,7 @@ export interface LayerConfig {
 }
 
 export interface OptimizerConfig {
-  type: 'sgd' | 'adam' | 'adamw' | 'fedprox' | 'fedadam';
+  type: 'sgd' | 'adam' | 'adamw' | 'fedprox' | 'fedadam' | 'fedavg';
   learningRate: number;
   momentum?: number;
   beta1?: number;

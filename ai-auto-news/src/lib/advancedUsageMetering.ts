@@ -512,7 +512,7 @@ class AdvancedUsageMeteringSystem {
 
   private async updateRealTimeCounters(event: UsageEvent): Promise<void> {
     const key = `usage:${event.userId}:${event.resourceType}:minute`;
-    const current = (await this.cache.get(key)) || 0;
+    const current = (await this.cache.get<number>(key)) || 0;
     await this.cache.set(key, current + event.quantity, 60); // 60s TTL
   }
 

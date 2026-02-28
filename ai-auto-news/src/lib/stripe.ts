@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2024-12-18.acacia',
+  apiVersion: '2023-10-16',
   typescript: true,
 });
 
@@ -203,7 +203,7 @@ export class StripeService {
     return invoices.data;
   }
 
-  async getUpcomingInvoice(customerId: string): Promise<Stripe.Invoice | null> {
+  async getUpcomingInvoice(customerId: string): Promise<Stripe.UpcomingInvoice | null> {
     try {
       return await stripe.invoices.retrieveUpcoming({
         customer: customerId,

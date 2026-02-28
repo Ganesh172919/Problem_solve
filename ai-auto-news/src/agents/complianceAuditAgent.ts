@@ -498,7 +498,7 @@ export class ComplianceAuditAgent {
         const criticals = auditRecord.findings.filter(f => f.severity === 'critical');
         if (criticals.length > 0) {
           this.generateRemediationPlan(criticals);
-          logger.error('Critical compliance failures detected in continuous monitoring', {
+          logger.error('Critical compliance failures detected in continuous monitoring', undefined, {
             framework,
             criticals: criticals.map(f => f.title),
           });

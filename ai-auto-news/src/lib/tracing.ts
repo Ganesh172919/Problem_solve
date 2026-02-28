@@ -5,8 +5,8 @@
  * Supports: Jaeger, Zipkin, Grafana Tempo
  */
 
-import { trace, context, SpanStatusCode, Span } from '@opentelemetry/api';
-import { Resource } from '@opentelemetry/resources';
+import { trace, context as otelContext, SpanStatusCode, Span, SpanKind, type Context as OtelContext } from '@opentelemetry/api';
+import { resourceFromAttributes } from '@opentelemetry/resources';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { BatchSpanProcessor, ConsoleSpanExporter } from '@opentelemetry/sdk-trace-base';
@@ -34,7 +34,7 @@ class DistributedTracer {
   constructor(serviceName: string = 'ai-auto-news') {
     this.serviceName = serviceName;
     this.provider = new NodeTracerProvider({
-      resource: new Resource({
+      resource: resourceFromAttributes({
         [SemanticResourceAttributes.SERVICE_NAME]: serviceName,
         [SemanticResourceAttributes.SERVICE_VERSION]: process.env.npm_package_version || '2.0.0',
         [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]: process.env.NODE_ENV || 'development',
@@ -66,16 +66,23 @@ class DistributedTracer {
       exporters.push(new ConsoleSpanExporter());
     }
 
-    // Add batch processors
-    exporters.forEach(exporter => {
-      this.provider.addSpanProcessor(
-        new BatchSpanProcessor(exporter, {
-          maxQueueSize: 2048,
-          maxExportBatchSize: 512,
-          scheduledDelayMillis: 5000,
-          exportTimeoutMillis: 30000,
-        })
-      );
+    // Re-create provider with span processors
+    const spanProcessors = exporters.map(exporter =>
+      new BatchSpanProcessor(exporter, {
+        maxQueueSize: 2048,
+        maxExportBatchSize: 512,
+        scheduledDelayMillis: 5000,
+        exportTimeoutMillis: 30000,
+      })
+    );
+
+    this.provider = new NodeTracerProvider({
+      resource: resourceFromAttributes({
+        [SemanticResourceAttributes.SERVICE_NAME]: this.serviceName,
+        [SemanticResourceAttributes.SERVICE_VERSION]: process.env.npm_package_version || '2.0.0',
+        [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]: process.env.NODE_ENV || 'development',
+      }),
+      spanProcessors,
     });
 
     // Register the provider
@@ -87,7 +94,10 @@ class DistributedTracer {
         getNodeAutoInstrumentations({
           '@opentelemetry/instrumentation-http': {
             enabled: true,
-            ignoreIncomingPaths: ['/health', '/metrics'],
+            ignoreIncomingRequestHook: (req) => {
+              const url = (req as { url?: string }).url ?? '';
+              return url === '/health' || url === '/metrics';
+            },
           },
           '@opentelemetry/instrumentation-express': { enabled: true },
           '@opentelemetry/instrumentation-redis': { enabled: true },
@@ -124,8 +134,8 @@ class DistributedTracer {
 
     try {
       // Run function in span context
-      const result = await context.with(
-        trace.setSpan(context.active(), span),
+      const result = await otelContext.with(
+        trace.setSpan(otelContext.active(), span),
         () => fn(span)
       );
 
@@ -180,9 +190,9 @@ class DistributedTracer {
   /**
    * Extract context from headers (for distributed tracing)
    */
-  extractContext(headers: Record<string, string>): context.Context | undefined {
+  extractContext(headers: Record<string, string>): OtelContext | undefined {
     // OpenTelemetry auto-instrumentation handles this
-    return context.active();
+    return otelContext.active();
   }
 
   /**
@@ -208,7 +218,7 @@ class DistributedTracer {
   }
 
   private mapSpanKind(kind?: string) {
-    const SpanKind = trace.SpanKind;
+    
     switch (kind) {
       case 'server': return SpanKind.SERVER;
       case 'client': return SpanKind.CLIENT;
@@ -298,7 +308,7 @@ export function tracingMiddleware() {
     };
 
     // Run in span context
-    context.with(trace.setSpan(context.active(), span), () => {
+    otelContext.with(trace.setSpan(otelContext.active(), span), () => {
       next();
     });
   };

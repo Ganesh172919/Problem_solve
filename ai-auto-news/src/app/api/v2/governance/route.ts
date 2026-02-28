@@ -16,6 +16,7 @@ import getDataGovernanceEngine, {
   type LineageGraph,
   type QualityReport,
   type ComplianceReport,
+  type PIIType,
 } from '../../../../lib/dataGovernanceEngine';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -165,7 +166,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const cacheKey = `api:v2:governance:get:${JSON.stringify(params)}`;
     const cached = await cache.get<GovernanceOverviewResponse>(cacheKey);
     if (cached) {
-      logger.debug({ view: params.view, assetId: params.assetId }, 'Returning cached governance data');
+      logger.debug('Returning cached governance data', { view: params.view, assetId: params.assetId });
       return NextResponse.json(cached, {
         headers: { 'X-Cache': 'HIT', 'X-Response-Time': `${Date.now() - startMs}ms` },
       });
@@ -213,7 +214,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const catalogItems = engine.searchCatalog({
       type: params.assetType as DataAsset['type'] | undefined,
       classification: params.classification as DataClassification | undefined,
-      tag: params.tag,
+      tags: params.tag ? [params.tag] : undefined,
     });
 
     const perPage = Math.min(100, Math.max(1, parseInt(params.perPage ?? '20', 10) || 20));
@@ -287,13 +288,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     };
 
     await cache.set(cacheKey, response, 600); // cache for 10 minutes
-    logger.info({ view: params.view, totalAssets: stats.totalAssets, durationMs: Date.now() - startMs }, 'Governance GET complete');
+    logger.info('Governance GET complete', { view: params.view, totalAssets: stats.totalAssets, durationMs: Date.now() - startMs });
 
     return NextResponse.json(response, {
       headers: { 'X-Cache': 'MISS', 'X-Response-Time': `${Date.now() - startMs}ms` },
     });
   } catch (error) {
-    logger.error({ error, durationMs: Date.now() - startMs }, 'Governance GET error');
+    logger.error('Governance GET error', undefined, { error, durationMs: Date.now() - startMs });
     return NextResponse.json(
       { success: false, error: 'Failed to retrieve governance data', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 },
@@ -356,10 +357,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         type: f.type,
         nullable: f.nullable ?? true,
         description: f.description,
-        piiType: f.piiType as FieldDefinition['piiType'] | undefined,
-        tags: f.tags ?? [],
+        classifications: [],
+        piiTypes: f.piiType ? [f.piiType as PIIType] : [],
         constraints: [],
-        masking: undefined,
+        maskingStrategy: undefined,
       }));
 
       registeredSchema = engine.registerSchema(assetId, fieldDefs, body.owner);
@@ -381,31 +382,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     let lineageNodesCreated = 0;
     if (body.upstreamAssets && body.upstreamAssets.length > 0) {
       const sinkNode = engine.addLineageNode({
-        name: body.name,
+        assetName: body.name,
         type: 'sink',
         assetId,
-        description: `${body.type} asset: ${body.name}`,
-        transformations: [],
-        metadata: {},
       });
 
       for (const upstreamId of body.upstreamAssets) {
         const upstreamAsset = engine.getAsset(upstreamId);
         if (upstreamAsset) {
           const sourceNode = engine.addLineageNode({
-            name: upstreamAsset.name,
+            assetName: upstreamAsset.name,
             type: 'source',
             assetId: upstreamId,
-            description: `Upstream: ${upstreamAsset.name}`,
-            transformations: [],
-            metadata: {},
           });
           engine.addLineageEdge({
-            sourceNodeId: sourceNode.id,
-            targetNodeId: sinkNode.id,
-            transformationType: 'derived',
-            description: `${upstreamAsset.name} → ${body.name}`,
-            fieldMappings: [],
+            fromNodeId: sourceNode.id,
+            toNodeId: sinkNode.id,
+            transformationDescription: `${upstreamAsset.name} → ${body.name}`,
           });
           lineageNodesCreated += 2;
         }
@@ -414,12 +407,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Record access audit entry
     engine.recordAccess({
-      userId: 'api-v2-governance',
+      actorId: 'api-v2-governance',
+      actorType: 'api-key',
       assetId,
       action: 'write',
       timestamp: now,
-      purpose: 'Asset registration via API',
-      authorized: true,
+      result: 'allowed',
+      classification: 'internal',
     });
 
     const statusLabel: RegisterAssetResponse['status'] = lineageNodesCreated > 0
@@ -441,14 +435,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       registeredAt: now.toISOString(),
     };
 
-    logger.info({ assetId, name: body.name, type: body.type, piiDetected: piiFields.length > 0, durationMs: Date.now() - startMs }, 'Data asset registered');
+    logger.info('Data asset registered', { assetId, name: body.name, type: body.type, piiDetected: piiFields.length > 0, durationMs: Date.now() - startMs });
 
     return NextResponse.json(response, {
       status: 201,
       headers: { 'X-Response-Time': `${Date.now() - startMs}ms` },
     });
   } catch (error) {
-    logger.error({ error, durationMs: Date.now() - startMs }, 'Governance POST error');
+    logger.error('Governance POST error', undefined, { error, durationMs: Date.now() - startMs });
     return NextResponse.json(
       { success: false, error: 'Failed to register data asset', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 },
@@ -462,38 +456,38 @@ function serializeLineage(graph: LineageGraph) {
   return {
     nodes: graph.nodes.map(n => ({
       id: n.id,
-      name: n.name,
+      name: n.assetName,
       type: n.type,
       assetId: n.assetId,
-      description: n.description,
+      description: n.operation,
     })),
     edges: graph.edges.map(e => ({
       id: e.id,
-      sourceNodeId: e.sourceNodeId,
-      targetNodeId: e.targetNodeId,
-      transformationType: e.transformationType,
-      description: e.description,
+      sourceNodeId: e.fromNodeId,
+      targetNodeId: e.toNodeId,
+      transformationType: e.transformationDescription,
+      description: e.transformationDescription,
     })),
-    rootAssetId: graph.rootAssetId,
-    depth: graph.depth,
-    totalNodes: graph.totalNodes,
+    assetId: graph.assetId,
+    totalNodes: graph.nodes.length,
   };
 }
 
 function serializeQualityReport(report: QualityReport) {
+  const passed = report.checks.filter(c => c.passed).length;
+  const failed = report.checks.length - passed;
   return {
     assetId: report.assetId,
     overallScore: report.overallScore,
-    dimensions: report.dimensions,
-    checksRun: report.checksRun,
-    checksPassed: report.checksPassed,
-    checksFailed: report.checksFailed,
-    issues: report.issues.map(i => ({
-      dimension: i.dimension,
-      severity: i.severity,
-      description: i.description,
-      affectedField: i.affectedField,
-      recommendation: i.recommendation,
+    checksRun: report.checks.length,
+    checksPassed: passed,
+    checksFailed: failed,
+    issues: report.checks.filter(c => !c.passed).map((c) => ({
+      dimension: c.dimension,
+      severity: c.score < 50 ? 'critical' : 'warning',
+      description: c.details,
+      affectedField: undefined,
+      recommendation: report.recommendations[0],
     })),
     generatedAt: report.generatedAt.toISOString(),
   };
@@ -534,8 +528,8 @@ function buildLineageSummary(
       assetName: asset.name,
       upstreamCount: upstreamNodes,
       downstreamCount: downstreamNodes,
-      depth: graph.depth,
-      criticalPath: graph.depth >= 3,
+      depth: graph.nodes.length,
+      criticalPath: graph.nodes.length >= 3,
     };
   } catch {
     return {
@@ -556,7 +550,7 @@ function buildComplianceSummary(
   try {
     const report: ComplianceReport = engine.runComplianceAudit(framework);
     const total = report.results.length;
-    const passed = report.results.filter(r => r.status === 'pass').length;
+    const passed = report.results.filter(r => r.passed).length;
     const failed = total - passed;
     const score = total > 0 ? Math.round((passed / total) * 100) : 0;
     return {

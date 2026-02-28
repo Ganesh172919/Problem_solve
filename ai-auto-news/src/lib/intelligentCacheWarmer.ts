@@ -587,7 +587,7 @@ class IntelligentCacheWarmer {
         job.status = 'failed';
         job.errorMessage = err instanceof Error ? err.message : 'Warming failed';
         this.metrics.warmingJobsFailed++;
-        logger.error('Cache warming job failed', { key, error: job.errorMessage });
+        logger.error('Cache warming job failed', undefined, { key, error: job.errorMessage });
       }
 
       this.warmingJobs.set(job.id, job);
@@ -685,7 +685,7 @@ class IntelligentCacheWarmer {
           const t = setTimeout(schedule, intervalMs);
           this.scheduledTimers.set(contentKey, t);
         })
-        .catch((err) => logger.error('Scheduled warming error', { contentKey, err }));
+        .catch((err) => logger.error('Scheduled warming error', undefined, { contentKey, err }));
     };
 
     const timer = setTimeout(schedule, intervalMs);

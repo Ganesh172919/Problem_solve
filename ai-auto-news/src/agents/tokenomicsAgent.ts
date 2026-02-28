@@ -6,7 +6,7 @@
  * adjustments to maintain healthy token economics.
  */
 
-import { getLogger } from './logger';
+import { getLogger } from '../lib/logger';
 import { getTokenomicsEngine } from '../lib/tokenomicsEngine';
 
 const logger = getLogger();

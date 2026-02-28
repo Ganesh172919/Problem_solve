@@ -28,7 +28,7 @@ describe('Cache Module', () => {
     });
 
     it('should return undefined for non-existent keys', () => {
-      expect(cache.get('nonexistent')).toBeUndefined();
+      expect(cache.get('nonexistent')).toBeNull();
     });
   });
 
@@ -38,7 +38,7 @@ describe('Cache Module', () => {
       expect(cache.get('key1')).toBe('value1');
 
       await new Promise(resolve => setTimeout(resolve, 1100));
-      expect(cache.get('key1')).toBeUndefined();
+      expect(cache.get('key1')).toBeNull();
     });
 
     it('should not expire entries before TTL', async () => {
@@ -54,7 +54,7 @@ describe('Cache Module', () => {
       cache.set('key2', 'value2', 60);
 
       cache.delete('key1');
-      expect(cache.get('key1')).toBeUndefined();
+      expect(cache.get('key1')).toBeNull();
       expect(cache.get('key2')).toBe('value2');
     });
   });
@@ -66,8 +66,8 @@ describe('Cache Module', () => {
       cache.set('users:1', 'user1', 60);
 
       cache.deleteByPrefix('posts:');
-      expect(cache.get('posts:1')).toBeUndefined();
-      expect(cache.get('posts:2')).toBeUndefined();
+      expect(cache.get('posts:1')).toBeNull();
+      expect(cache.get('posts:2')).toBeNull();
       expect(cache.get('users:1')).toBe('user1');
     });
   });
@@ -76,16 +76,16 @@ describe('Cache Module', () => {
     it('should return cached value if exists', async () => {
       cache.set('key1', 'cached', 60);
 
-      const factory = jest.fn().mockResolvedValue('fresh');
-      const value = await cache.getOrSet('key1', factory, 60);
+      const factory = jest.fn<() => Promise<string>>().mockResolvedValue('fresh');
+      const value = await cache.getOrSet<string>('key1', factory, 60);
 
       expect(value).toBe('cached');
       expect(factory).not.toHaveBeenCalled();
     });
 
     it('should call factory if value not cached', async () => {
-      const factory = jest.fn().mockResolvedValue('fresh');
-      const value = await cache.getOrSet('key1', factory, 60);
+      const factory = jest.fn<() => Promise<string>>().mockResolvedValue('fresh');
+      const value = await cache.getOrSet<string>('key1', factory, 60);
 
       expect(value).toBe('fresh');
       expect(factory).toHaveBeenCalledTimes(1);
@@ -116,7 +116,7 @@ describe('Cache Module', () => {
 
       cache.clear();
       expect(cache.size()).toBe(0);
-      expect(cache.get('key1')).toBeUndefined();
+      expect(cache.get('key1')).toBeNull();
     });
   });
 });
