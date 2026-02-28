@@ -76,6 +76,7 @@ export interface EngineStats {
   totalRuns: number;
   avgExecutionTimeMs: number;
   regressionsDetected: number;
+  suiteIds: string[];
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -328,6 +329,7 @@ export class PerformanceBenchmarkingEngine {
       totalRuns: this.totalRuns,
       avgExecutionTimeMs: resultCount > 0 ? totalExecutionTime / resultCount : 0,
       regressionsDetected: this.regressionsDetected,
+      suiteIds: Array.from(this.suites.keys()),
     };
   }
 

@@ -1,19 +1,19 @@
 import { ResearchResult, BlogContent } from '@/types';
 
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
 export async function blogAgent(research: ResearchResult): Promise<BlogContent> {
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey || apiKey === 'your_gemini_api_key_here') {
-    return generateFallbackBlog(research);
+    throw new Error('GEMINI_API_KEY is not configured. Please set a valid Gemini API key in .env.local');
   }
 
   try {
     const prompt = buildBlogPrompt(research);
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 45000);
+    const timeout = setTimeout(() => controller.abort(), 60000);
 
     const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
       method: 'POST',
@@ -22,7 +22,9 @@ export async function blogAgent(research: ResearchResult): Promise<BlogContent> 
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 4096,
+          maxOutputTokens: 8192,
+          responseMimeType: 'application/json',
+          thinkingConfig: { thinkingBudget: 0 },
         },
       }),
       signal: controller.signal,
@@ -31,17 +33,26 @@ export async function blogAgent(research: ResearchResult): Promise<BlogContent> 
     clearTimeout(timeout);
 
     if (!response.ok) {
-      console.error(`Gemini API error: ${response.status}`);
-      return generateFallbackBlog(research);
+      const errorText = await response.text().catch(() => 'unknown');
+      throw new Error(`Gemini API error: ${response.status} — ${errorText}`);
     }
 
     const data = await response.json();
+
+    // Check if response was truncated due to token limit
+    const finishReason = data.candidates?.[0]?.finishReason;
+    if (finishReason === 'MAX_TOKENS') {
+      console.warn('[BlogAgent] Response was truncated (MAX_TOKENS). Attempting to repair JSON...');
+    }
+
     const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
     return parseBlogResponse(content, research);
   } catch (error) {
     console.error('Blog agent error:', error);
-    return generateFallbackBlog(research);
+    throw error instanceof Error
+      ? error
+      : new Error('Blog agent failed with an unknown error');
   }
 }
 
@@ -78,27 +89,115 @@ OUTPUT: Return ONLY a valid JSON object with this exact structure (no markdown, 
 Return ONLY the JSON. No other text.`;
 }
 
+function stripMarkdownFences(text: string): string {
+  return text.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+}
+
+/**
+ * Attempts to repair truncated JSON by closing open strings, arrays, and objects.
+ */
+function repairTruncatedJson(text: string): string {
+  let repaired = text.trim();
+
+  // Remove trailing comma
+  repaired = repaired.replace(/,\s*$/, '');
+
+  // If the JSON ends with a truncated string value, close the string
+  if ((repaired.match(/"/g) || []).length % 2 !== 0) {
+    repaired += '"';
+  }
+
+  // Count open brackets/braces and close them
+  let openBraces = 0;
+  let openBrackets = 0;
+  let inString = false;
+  let prevChar = '';
+
+  for (const char of repaired) {
+    if (char === '"' && prevChar !== '\\') {
+      inString = !inString;
+    } else if (!inString) {
+      if (char === '{') openBraces++;
+      else if (char === '}') openBraces--;
+      else if (char === '[') openBrackets++;
+      else if (char === ']') openBrackets--;
+    }
+    prevChar = char;
+  }
+
+  // Remove any trailing partial key-value pair
+  repaired = repaired.replace(/,\s*"[^"]*"\s*:\s*"?$/, '');
+  if ((repaired.match(/"/g) || []).length % 2 !== 0) {
+    repaired += '"';
+  }
+
+  for (let i = 0; i < openBrackets; i++) repaired += ']';
+  for (let i = 0; i < openBraces; i++) repaired += '}';
+
+  return repaired;
+}
+
 function parseBlogResponse(content: string, research: ResearchResult): BlogContent {
+  const cleaned = stripMarkdownFences(content);
+
+  // 1. Try parsing directly
   try {
-    const parsed = JSON.parse(content);
+    const parsed = JSON.parse(cleaned);
     return validateBlogContent(parsed);
   } catch {
-    // Try to extract JSON
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      try {
-        const parsed = JSON.parse(jsonMatch[0]);
-        return validateBlogContent(parsed);
-      } catch {
-        // Fall through
-      }
-    }
-    return generateFallbackBlog(research);
+    // continue
   }
+
+  // 2. Try to extract JSON object
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    try {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return validateBlogContent(parsed);
+    } catch {
+      // continue
+    }
+  }
+
+  // 3. Try to repair truncated JSON
+  try {
+    const repaired = repairTruncatedJson(cleaned);
+    const parsed = JSON.parse(repaired);
+    console.warn('[BlogAgent] Successfully repaired truncated JSON response');
+    return validateBlogContent(parsed);
+  } catch {
+    // continue
+  }
+
+  // 4. Extract fields via regex as last resort
+  const titleMatch = cleaned.match(/"title"\s*:\s*"([^"]+)"/);
+  const slugMatch = cleaned.match(/"slug"\s*:\s*"([^"]+)"/);
+  const metaMatch = cleaned.match(/"metaDescription"\s*:\s*"([^"]+)"/);
+  const contentMatch = cleaned.match(/"content"\s*:\s*"([\s\S]*?)(?:"\s*,\s*"|"\s*})/);
+  const summaryMatch = cleaned.match(/"summary"\s*:\s*"([^"]+)"/);
+
+  if (titleMatch && (contentMatch || summaryMatch)) {
+    console.warn('[BlogAgent] Extracted partial data from malformed JSON response');
+    const title = titleMatch[1];
+    return {
+      title,
+      slug: slugMatch?.[1] || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+      metaDescription: (metaMatch?.[1] || '').substring(0, 160),
+      content: contentMatch?.[1] || `<p>${summaryMatch?.[1] || research.summary}</p>`,
+      summary: summaryMatch?.[1] || research.summary,
+      tags: ['technology', 'AI'],
+    };
+  }
+
+  console.error('Raw Gemini blog response:', content.substring(0, 500));
+  throw new Error(`Failed to parse Gemini blog response for topic: ${research.topic}`);
 }
 
 function validateBlogContent(data: Record<string, unknown>): BlogContent {
-  const title = String(data.title || 'Untitled Post');
+  const title = String(data.title || '');
+  if (!title || !data.content) {
+    throw new Error('Gemini returned an empty blog post');
+  }
   return {
     title,
     slug: String(data.slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')),
@@ -106,63 +205,5 @@ function validateBlogContent(data: Record<string, unknown>): BlogContent {
     content: String(data.content || ''),
     summary: String(data.summary || ''),
     tags: Array.isArray(data.tags) ? data.tags.map(String) : ['technology', 'AI'],
-  };
-}
-
-function generateFallbackBlog(research: ResearchResult): BlogContent {
-  const title = research.headline || `Exploring ${research.topic}`;
-  const slug = title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-    .substring(0, 80);
-
-  const keyPointsHtml = research.keyPoints
-    .map((p) => `<li>${p}</li>`)
-    .join('\n        ');
-
-  const content = `
-    <h2>Introduction</h2>
-    <p>${research.summary}</p>
-
-    <h2>Key Developments</h2>
-    <p>The landscape of ${research.topic} continues to evolve rapidly. Here are the most significant developments:</p>
-    <ul>
-        ${keyPointsHtml}
-    </ul>
-
-    <h2>Technical Analysis</h2>
-    <p>From a technical perspective, these developments represent a significant leap forward. The underlying technologies have matured to a point where practical applications are becoming increasingly viable. Researchers and engineers are finding novel ways to overcome previous limitations, leading to more robust and efficient systems.</p>
-
-    <h2>Industry Impact</h2>
-    <p>The implications for industry are far-reaching. Companies across sectors are evaluating how these advancements can be integrated into their operations. Early adopters are already seeing measurable benefits in terms of efficiency, cost reduction, and competitive advantage.</p>
-
-    <h2>Real-World Applications</h2>
-    <p>Beyond theoretical advances, practical implementations are emerging at an accelerating pace. From healthcare to finance, from manufacturing to creative industries, the real-world applications of ${research.topic} are expanding rapidly. Organizations that embrace these technologies early stand to gain a significant competitive edge.</p>
-
-    <h2>What This Means Going Forward</h2>
-    <p>Looking ahead, experts predict continued rapid advancement in this space. The convergence of improved algorithms, increased computational power, and growing datasets will likely accelerate progress even further. Stakeholders across the technology ecosystem should stay informed about these developments.</p>
-
-    <h2>Conclusion</h2>
-    <p>The developments in ${research.topic} represent an exciting frontier in technology. As these technologies mature, we can expect to see even more innovative applications and transformative impacts across industries. Staying informed and prepared for these changes will be crucial for businesses and professionals alike.</p>
-
-    <h2>Frequently Asked Questions</h2>
-    <h3>What are the key trends in ${research.topic}?</h3>
-    <p>The main trends include increased practical applications, growing investment from major tech companies, and the development of more efficient and accessible tools and frameworks.</p>
-
-    <h3>How will ${research.topic} affect businesses?</h3>
-    <p>Businesses can expect improved efficiency, new capabilities for automation and analysis, and the emergence of new products and services enabled by these technologies.</p>
-
-    <h3>What should professionals know about ${research.topic}?</h3>
-    <p>Professionals should focus on understanding the fundamentals, staying current with developments, and identifying opportunities to apply these technologies in their specific domains.</p>
-  `.trim();
-
-  return {
-    title,
-    slug,
-    metaDescription: `Explore the latest developments in ${research.topic}. Learn about key trends, industry impact, and what to expect in the future.`.substring(0, 160),
-    content,
-    summary: research.summary,
-    tags: ['technology', 'AI', 'innovation', research.topic.split(' ')[0]],
   };
 }
