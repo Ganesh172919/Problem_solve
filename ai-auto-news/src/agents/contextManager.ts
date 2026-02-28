@@ -182,7 +182,7 @@ class AdvancedContextManager {
     }
 
     // Filter items based on query
-    let candidates = window.items.filter(item => {
+    const candidates = window.items.filter(item => {
       if (query.filters?.type && !query.filters.type.includes(item.type)) {
         return false;
       }

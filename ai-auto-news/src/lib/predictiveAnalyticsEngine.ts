@@ -250,7 +250,7 @@ class PredictiveAnalyticsEngine {
       values.slice(m, 2 * m).reduce((a, b) => a + b, 0) / m -
       values.slice(0, m).reduce((a, b) => a + b, 0) / m
     ) / m;
-    let seasonal = values.slice(0, m).map(v => v / Math.max(level, 1));
+    const seasonal = values.slice(0, m).map(v => v / Math.max(level, 1));
     const fitted: number[] = [];
 
     for (let i = 0; i < values.length; i++) {

@@ -505,7 +505,7 @@ class IntelligentDataPipeline {
 // ── Singleton ─────────────────────────────────────────────────────────────────
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __intelligentDataPipeline__: IntelligentDataPipeline | undefined;
 }
 

@@ -643,7 +643,7 @@ class MultiCloudCostOptimizer {
 // ── Singleton ─────────────────────────────────────────────────────────────────
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __multiCloudCostOptimizer__: MultiCloudCostOptimizer | undefined;
 }
 

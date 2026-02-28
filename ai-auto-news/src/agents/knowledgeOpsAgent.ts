@@ -329,7 +329,7 @@ export class KnowledgeOpsAgent {
 // ── Singleton ─────────────────────────────────────────────────────────────────
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __knowledgeOpsAgent__: KnowledgeOpsAgent | undefined;
 }
 

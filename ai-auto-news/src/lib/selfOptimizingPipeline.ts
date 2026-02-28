@@ -400,7 +400,7 @@ export class PipelineRegistry {
 // ── Singleton ─────────────────────────────────────────────────────────────────
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __pipelineRegistry__: PipelineRegistry | undefined;
 }
 

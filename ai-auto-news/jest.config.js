@@ -64,6 +64,9 @@ module.exports = {
   },
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   testTimeout: 10000,
+  // Many singleton services (cache, metrics) use background timers; forceExit
+  // prevents Jest workers from hanging after all tests complete.
+  forceExit: true,
   globals: {
     'ts-jest': {
       tsconfig: {

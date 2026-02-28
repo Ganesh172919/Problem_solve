@@ -206,7 +206,7 @@ export class RealtimePersonalizationEngine {
     context: PersonalizationContext,
     candidates: string[],
   ): PersonalizationResult {
-    let scores: Record<string, number> = {};
+    const scores: Record<string, number> = {};
     const collab = this.applyCollaborativeFiltering(profile.userId, candidates);
     const content = this.applyContentFiltering(profile, candidates);
     candidates.forEach((id) => {

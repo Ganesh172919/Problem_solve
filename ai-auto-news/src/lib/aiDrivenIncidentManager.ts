@@ -469,7 +469,7 @@ export class AIDrivenIncidentManager {
 // ── Singleton ─────────────────────────────────────────────────────────────────
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __aiDrivenIncidentManager__: AIDrivenIncidentManager | undefined;
 }
 

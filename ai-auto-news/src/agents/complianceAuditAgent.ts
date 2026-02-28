@@ -713,7 +713,7 @@ export class ComplianceAuditAgent {
 }
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __complianceAuditAgent__: ComplianceAuditAgent | undefined;
 }
 

@@ -404,7 +404,7 @@ export class DynamicSchemaEvolution {
 // ── Singleton ─────────────────────────────────────────────────────────────────
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __dynamicSchemaEvolution__: DynamicSchemaEvolution | undefined;
 }
 

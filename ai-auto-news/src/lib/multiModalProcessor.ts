@@ -406,7 +406,7 @@ export class MultiModalProcessor {
     let completeness = 50;
     let clarity = 50;
     let richness = 50;
-    let accuracy = 70; // hard to check without ground truth
+    const accuracy = 70; // hard to check without ground truth
 
     if (type === 'text' || type === 'markdown' || type === 'html') {
       const ta = analysis as TextAnalysis | undefined;

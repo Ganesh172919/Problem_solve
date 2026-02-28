@@ -737,7 +737,7 @@ export class AutonomousDeploymentAgent {
 }
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __autonomousDeploymentAgent__: AutonomousDeploymentAgent | undefined;
 }
 

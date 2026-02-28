@@ -209,7 +209,7 @@ export class FraudDetectionAgent {
 // ── Singleton ─────────────────────────────────────────────────────────────────
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __fraudDetectionAgent__: FraudDetectionAgent | undefined;
 }
 

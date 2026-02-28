@@ -351,7 +351,7 @@ export class IntelligentQueryRouter {
 // ── Singleton ─────────────────────────────────────────────────────────────────
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __intelligentQueryRouter__: IntelligentQueryRouter | undefined;
 }
 

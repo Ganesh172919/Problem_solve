@@ -286,7 +286,7 @@ class IntelligentSessionManager {
 
   runEviction(): { evicted: number; expired: number } {
     const now = Date.now();
-    let evicted = 0;
+    const evicted = 0;
     let expired = 0;
 
     for (const session of this.sessions.values()) {

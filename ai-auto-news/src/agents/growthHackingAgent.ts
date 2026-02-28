@@ -644,7 +644,7 @@ export class GrowthHackingAgent {
 // ---------------------------------------------------------------------------
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __growthHackingAgent__: GrowthHackingAgent | undefined;
 }
 

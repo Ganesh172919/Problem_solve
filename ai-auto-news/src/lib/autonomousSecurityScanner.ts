@@ -657,7 +657,7 @@ class AutonomousSecurityScanner {
 // ── Singleton ─────────────────────────────────────────────────────────────────
 
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __autonomousSecurityScanner__: AutonomousSecurityScanner | undefined;
 }
 

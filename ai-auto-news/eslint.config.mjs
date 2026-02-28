@@ -12,6 +12,13 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Build artifacts & non-app source:
+    "coverage/**",
+    "cli/**",
+    "sdk/**",
+    "k8s/**",
+    "terraform/**",
+    "prisma/**",
   ]),
 ]);
 
