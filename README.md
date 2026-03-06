@@ -1,18 +1,21 @@
 # Problem_solve
-A solution to the problem in real world.
 
-## AI Auto News
+This repository contains small projects and experiments. The primary project is **AI Auto News**, a localhost-first publishing app.
 
-An autonomous AI-powered blog and news platform. See [`ai-auto-news/README.md`](ai-auto-news/README.md) for full documentation.
+## Documentation
 
-### Quick Start
+- AI Auto News docs hub: [`ai-auto-news/docs/README.md`](ai-auto-news/docs/README.md)
+- AI Auto News README: [`ai-auto-news/README.md`](ai-auto-news/README.md)
+
+## Quick Start (AI Auto News)
+
+See the full guide at [`ai-auto-news/docs/getting-started.md`](ai-auto-news/docs/getting-started.md).
 
 ```bash
 cd ai-auto-news
 npm install
 cp .env.example .env.local
-# Edit .env.local with your API keys
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see the platform.
+Open `http://localhost:3000`.

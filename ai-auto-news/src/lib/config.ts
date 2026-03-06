@@ -49,7 +49,7 @@ export const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
 };
 
 export const APP_CONFIG = {
-  schedulerIntervalMs: parseInt(process.env.SCHEDULER_INTERVAL_MS || '300000', 10),
+  schedulerIntervalMs: parseInt(process.env.SCHEDULER_INTERVAL_MS || '7200000', 10),
   apiVersions: ['v1'] as const,
   maxPaginationLimit: 100,
   defaultPaginationLimit: 10,

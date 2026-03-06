@@ -1,12 +1,19 @@
 import { ResearchResult, BlogContent } from '@/types';
+import { getAiProvider, getGeminiApiKey } from '@/lib/aiProvider';
+import { rateLimitedFetch } from '@/lib/rateLimiter';
+import { mockBlog } from './mockAi';
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
 export async function blogAgent(research: ResearchResult): Promise<BlogContent> {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const provider = getAiProvider();
+  const apiKey = getGeminiApiKey();
 
-  if (!apiKey || apiKey === 'your_gemini_api_key_here') {
-    throw new Error('GEMINI_API_KEY is not configured. Please set a valid Gemini API key in .env.local');
+  if (provider === 'mock' || !apiKey) {
+    if (provider === 'gemini' && !apiKey) {
+      console.warn('[BlogAgent] AI_PROVIDER=gemini but GEMINI_API_KEY is missing. Falling back to mock mode.');
+    }
+    return mockBlog(research);
   }
 
   try {
@@ -15,20 +22,24 @@ export async function blogAgent(research: ResearchResult): Promise<BlogContent> 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 60000);
 
-    const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 8192,
-          responseMimeType: 'application/json',
-          thinkingConfig: { thinkingBudget: 0 },
-        },
-      }),
-      signal: controller.signal,
-    });
+    const response = await rateLimitedFetch(
+      `${GEMINI_API_URL}?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 8192,
+            responseMimeType: 'application/json',
+            thinkingConfig: { thinkingBudget: 0 },
+          },
+        }),
+        signal: controller.signal,
+      },
+      'BlogAgent',
+    );
 
     clearTimeout(timeout);
 

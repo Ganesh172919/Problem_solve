@@ -1,4 +1,7 @@
 import { ResearchResult } from '@/types';
+import { rateLimitedFetch, RateLimitError, RateLimitExhaustedError } from '@/lib/rateLimiter';
+import { getAiProvider, getGeminiApiKey } from '@/lib/aiProvider';
+import { mockResearch } from './mockAi';
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
@@ -29,14 +32,21 @@ function getRandomTopic(recentTopics: string[]): string {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-export async function researchAgent(recentTopics: string[] = []): Promise<ResearchResult> {
-  const apiKey = process.env.GEMINI_API_KEY;
+export async function researchAgent(
+  recentTopics: string[] = [],
+  requestedTopic?: string,
+): Promise<ResearchResult> {
+  const provider = getAiProvider();
+  const apiKey = getGeminiApiKey();
 
-  if (!apiKey || apiKey === 'your_gemini_api_key_here') {
-    throw new Error('GEMINI_API_KEY is not configured. Please set a valid Gemini API key in .env.local');
+  if (provider === 'mock' || !apiKey) {
+    if (provider === 'gemini' && !apiKey) {
+      console.warn('[ResearchAgent] AI_PROVIDER=gemini but GEMINI_API_KEY is missing. Falling back to mock mode.');
+    }
+    return mockResearch(recentTopics, requestedTopic);
   }
 
-  const topic = getRandomTopic(recentTopics);
+  const topic = requestedTopic?.trim() || getRandomTopic(recentTopics);
 
   try {
     const prompt = `You are a research assistant. Research the latest news and developments about: "${topic}".
@@ -55,20 +65,24 @@ Make sure the content is factual, current, and insightful. Return ONLY the JSON 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30000);
 
-    const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 2048,
-          responseMimeType: 'application/json',
-          thinkingConfig: { thinkingBudget: 0 },
-        },
-      }),
-      signal: controller.signal,
-    });
+    const response = await rateLimitedFetch(
+      `${GEMINI_API_URL}?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 2048,
+            responseMimeType: 'application/json',
+            thinkingConfig: { thinkingBudget: 0 },
+          },
+        }),
+        signal: controller.signal,
+      },
+      'ResearchAgent',
+    );
 
     clearTimeout(timeout);
 
@@ -89,6 +103,10 @@ Make sure the content is factual, current, and insightful. Return ONLY the JSON 
 
     return parseResearchResponse(content, topic);
   } catch (error) {
+    if (error instanceof RateLimitError || error instanceof RateLimitExhaustedError) {
+      console.warn(`[ResearchAgent] ${error.message}`);
+      throw error;
+    }
     console.error('Research agent error:', error);
     throw error instanceof Error
       ? error

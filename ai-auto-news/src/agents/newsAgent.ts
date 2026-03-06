@@ -1,12 +1,19 @@
 import { ResearchResult, NewsContent } from '@/types';
+import { getAiProvider, getGeminiApiKey } from '@/lib/aiProvider';
+import { rateLimitedFetch } from '@/lib/rateLimiter';
+import { mockNews } from './mockAi';
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
 export async function newsAgent(research: ResearchResult): Promise<NewsContent> {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const provider = getAiProvider();
+  const apiKey = getGeminiApiKey();
 
-  if (!apiKey || apiKey === 'your_gemini_api_key_here') {
-    throw new Error('GEMINI_API_KEY is not configured. Please set a valid Gemini API key in .env.local');
+  if (provider === 'mock' || !apiKey) {
+    if (provider === 'gemini' && !apiKey) {
+      console.warn('[NewsAgent] AI_PROVIDER=gemini but GEMINI_API_KEY is missing. Falling back to mock mode.');
+    }
+    return mockNews(research);
   }
 
   try {
@@ -15,20 +22,24 @@ export async function newsAgent(research: ResearchResult): Promise<NewsContent> 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 45000);
 
-    const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.6,
-          maxOutputTokens: 4096,
-          responseMimeType: 'application/json',
-          thinkingConfig: { thinkingBudget: 0 },
-        },
-      }),
-      signal: controller.signal,
-    });
+    const response = await rateLimitedFetch(
+      `${GEMINI_API_URL}?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.6,
+            maxOutputTokens: 4096,
+            responseMimeType: 'application/json',
+            thinkingConfig: { thinkingBudget: 0 },
+          },
+        }),
+        signal: controller.signal,
+      },
+      'NewsAgent',
+    );
 
     clearTimeout(timeout);
 

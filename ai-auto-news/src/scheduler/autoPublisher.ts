@@ -1,6 +1,7 @@
 import { autonomousPublisher } from '@/agents/autonomousPublisher';
+import { APP_CONFIG } from '@/lib/config';
 
-const INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+const INTERVAL_MS = APP_CONFIG.schedulerIntervalMs;
 
 interface SchedulerState {
   intervalId: ReturnType<typeof setInterval> | null;
@@ -73,7 +74,7 @@ export function startScheduler(): void {
     return;
   }
 
-  console.log('[Scheduler] Starting auto-publisher (interval: 5 minutes)');
+  console.log(`[Scheduler] Starting auto-publisher (interval: ${Math.round(INTERVAL_MS / 60000)} minutes)`);
   state.running = true;
 
   // Run first cycle immediately
