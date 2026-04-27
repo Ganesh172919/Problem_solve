@@ -53,17 +53,27 @@ function highlightQuery(text: string, query: string): string {
   if (words.length === 0) return safeText;
 
   const pattern = new RegExp(`(${words.join('|')})`, 'gi');
-  // Escape query words so they cannot introduce HTML
   const highlighted = safeText.replace(
     pattern,
-    '<mark class="bg-yellow-200 rounded px-0.5">$1</mark>',
+    '<mark style="background: rgba(168, 85, 247, 0.3); color: var(--text-primary); border-radius: 2px; padding: 0 2px;">$1</mark>',
   );
 
-  // Sanitize to ensure no injected HTML survives
   return DOMPurify.sanitize(highlighted, {
     ALLOWED_TAGS: ['mark'],
-    ALLOWED_ATTR: ['class'],
+    ALLOWED_ATTR: ['style'],
   });
+}
+
+function getCategoryBadgeClass(category: string): string {
+  const map: Record<string, string> = {
+    blog: 'badge-blog',
+    news: 'badge-news',
+    tech: 'badge-tech',
+    business: 'badge-business',
+    sports: 'badge-sports',
+    ai: 'badge-ai',
+  };
+  return map[category] || 'badge-blog';
 }
 
 export default function SearchPage() {
@@ -114,7 +124,6 @@ export default function SearchPage() {
     }
   }, [page, debouncedQuery, doSearch]);
 
-  // Auto-focus input on mount
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
@@ -122,17 +131,17 @@ export default function SearchPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
       {/* Search header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Search Articles</h1>
-        <p className="text-gray-500 text-sm">
+      <div className="mb-8 animate-fade-in-up">
+        <h1 className="text-3xl font-bold mb-2 gradient-text">Search Articles</h1>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
           Full-text search across all AI Auto News articles.
         </p>
       </div>
 
       {/* Search input */}
-      <div className="relative mb-8">
+      <div className="relative mb-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
         <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center">
-          <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="h-5 w-5" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
               d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
@@ -143,11 +152,12 @@ export default function SearchPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search articles, topics, summaries…"
-          className="w-full rounded-xl border border-gray-300 bg-white pl-12 pr-4 py-3 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          className="search-input"
+          style={{ paddingLeft: '48px' }}
         />
         {loading && (
           <div className="absolute inset-y-0 right-4 flex items-center">
-            <svg className="h-5 w-5 animate-spin text-gray-400" fill="none" viewBox="0 0 24 24">
+            <svg className="h-5 w-5 animate-spin" style={{ color: 'var(--text-accent)' }} fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor"
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
@@ -158,7 +168,14 @@ export default function SearchPage() {
 
       {/* Error */}
       {error && (
-        <div className="mb-6 rounded-md bg-red-50 border border-red-200 p-4 text-sm text-red-700">
+        <div
+          className="mb-6 rounded-lg p-4 text-sm"
+          style={{
+            background: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.2)',
+            color: '#f87171',
+          }}
+        >
           {error}
         </div>
       )}
@@ -166,34 +183,39 @@ export default function SearchPage() {
       {/* Results */}
       {result && (
         <div>
-          <p className="text-sm text-gray-500 mb-4">
+          <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>
             {result.total === 0
               ? `No results for "${result.query}"`
               : `${result.total.toLocaleString()} result${result.total !== 1 ? 's' : ''} for "${result.query}"`}
           </p>
 
-          <div className="space-y-4">
-            {result.posts.map((post) => (
+          <div className="space-y-3">
+            {result.posts.map((post, i) => (
               <article
                 key={post.id}
-                className="rounded-xl border border-gray-200 bg-white p-5 hover:border-blue-300 hover:shadow-sm transition-all"
+                className="card p-5 animate-fade-in-up"
+                style={{ animationDelay: `${i * 0.05}s`, opacity: 0, animationFillMode: 'forwards' }}
               >
-                <div className="flex items-center gap-2 text-xs text-gray-400 mb-1">
-                  <span className="capitalize rounded bg-gray-100 px-2 py-0.5 text-gray-600">
+                <div className="flex items-center gap-2 text-xs mb-2">
+                  <span className={`badge ${getCategoryBadgeClass(post.category)}`} style={{ fontSize: '0.7rem' }}>
                     {post.category}
                   </span>
-                  <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                  <span style={{ color: 'var(--text-muted)' }}>
+                    {new Date(post.createdAt).toLocaleDateString()}
+                  </span>
                 </div>
 
                 <Link href={`/post/${post.slug}`} className="group">
                   <h2
-                    className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 mb-1"
+                    className="text-lg font-semibold mb-1 transition-colors"
+                    style={{ color: 'var(--text-primary)' }}
                     dangerouslySetInnerHTML={{
                       __html: highlightQuery(post.title, result.query),
                     }}
                   />
                   <p
-                    className="text-sm text-gray-500 line-clamp-2"
+                    className="text-sm line-clamp-2"
+                    style={{ color: 'var(--text-secondary)' }}
                     dangerouslySetInnerHTML={{
                       __html: highlightQuery(post.summary, result.query),
                     }}
@@ -201,13 +223,14 @@ export default function SearchPage() {
                 </Link>
 
                 {post.tags.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1">
+                  <div className="mt-3 flex flex-wrap gap-1.5">
                     {post.tags.slice(0, 5).map((tag) => (
                       <span
                         key={tag}
-                        className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500"
+                        className="px-2 py-0.5 rounded text-xs"
+                        style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', fontSize: '0.7rem' }}
                       >
-                        {tag}
+                        #{tag}
                       </span>
                     ))}
                   </div>
@@ -222,17 +245,19 @@ export default function SearchPage() {
               <button
                 disabled={result.page <= 1}
                 onClick={() => setPage((p) => p - 1)}
-                className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                className="btn-ghost disabled:opacity-40"
+                style={{ padding: '6px 16px', fontSize: '0.8rem' }}
               >
                 Previous
               </button>
-              <span className="flex items-center px-4 text-sm text-gray-600">
+              <span className="flex items-center px-4 text-sm" style={{ color: 'var(--text-muted)' }}>
                 Page {result.page} of {result.totalPages}
               </span>
               <button
                 disabled={result.page >= result.totalPages}
                 onClick={() => setPage((p) => p + 1)}
-                className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                className="btn-ghost disabled:opacity-40"
+                style={{ padding: '6px 16px', fontSize: '0.8rem' }}
               >
                 Next
               </button>
@@ -243,21 +268,29 @@ export default function SearchPage() {
 
       {/* Empty state */}
       {!query && !result && (
-        <div className="text-center py-12">
-          <svg className="mx-auto h-12 w-12 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+        <div className="text-center py-16 animate-fade-in">
+          <svg
+            className="mx-auto h-16 w-16 mb-4"
+            style={{ color: 'var(--text-muted)', opacity: 0.3 }}
+            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1}
               d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          <p className="text-gray-400 text-sm">Type to start searching…</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+            Type to start searching…
+          </p>
         </div>
       )}
 
       {result && result.total === 0 && (
         <div className="text-center py-12">
-          <p className="text-gray-400 text-sm mb-4">Try different keywords or browse by category.</p>
+          <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>
+            Try different keywords or browse by category.
+          </p>
           <div className="flex justify-center gap-3">
-            <Link href="/category/blog" className="text-sm text-blue-600 hover:underline">Browse Blog</Link>
-            <Link href="/category/news" className="text-sm text-blue-600 hover:underline">Browse News</Link>
+            <Link href="/category/blog" className="btn-ghost" style={{ fontSize: '0.8rem' }}>Browse Blog</Link>
+            <Link href="/category/news" className="btn-ghost" style={{ fontSize: '0.8rem' }}>Browse News</Link>
           </div>
         </div>
       )}

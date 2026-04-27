@@ -129,152 +129,218 @@ export default function AdminPage() {
     }
   };
 
+  // ---- Login Screen ----
   if (!loggedIn) {
     return (
-      <div className="mx-auto max-w-md px-4 py-20">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">Admin Login</h1>
-
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
-              Username
-            </label>
-            <input
-              id="username"
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900"
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900"
-              required
-            />
+      <div className="mx-auto max-w-md px-4 py-20 animate-fade-in-up">
+        <div
+          className="glass-strong p-8"
+          style={{ borderRadius: 'var(--radius-xl)' }}
+        >
+          <div className="text-center mb-6">
+            <div className="text-4xl mb-3">🔐</div>
+            <h1 className="text-2xl font-bold gradient-text mb-1">Admin Login</h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+              Authenticate to manage your platform
+            </p>
           </div>
 
-          {loginError && <p className="text-red-600 text-sm">{loginError}</p>}
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label htmlFor="admin-username" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+                Username
+              </label>
+              <input
+                id="admin-username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="search-input"
+                style={{ paddingLeft: '16px', fontSize: '0.9rem' }}
+                required
+              />
+            </div>
+            <div>
+              <label htmlFor="admin-password" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+                Password
+              </label>
+              <input
+                id="admin-password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="search-input"
+                style={{ paddingLeft: '16px', fontSize: '0.9rem' }}
+                required
+              />
+            </div>
 
-          <button
-            type="submit"
-            className="w-full rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
-          >
-            Login
-          </button>
-        </form>
+            {loginError && (
+              <p className="text-sm" style={{ color: '#f87171' }}>{loginError}</p>
+            )}
 
-        <p className="mt-4 text-xs text-gray-400 text-center">
-          Default: admin / admin123 (set in .env)
-        </p>
+            <button type="submit" className="btn-primary w-full justify-center" style={{ padding: '12px' }}>
+              Sign In
+            </button>
+          </form>
+
+          <p className="mt-4 text-center" style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+            Default: admin / admin123 (set in .env)
+          </p>
+        </div>
       </div>
     );
   }
 
+  // ---- Dashboard ----
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Admin Dashboard</h1>
+      <div className="flex items-center justify-between mb-8 animate-fade-in-up">
+        <div>
+          <h1 className="text-3xl font-bold gradient-text">Admin Dashboard</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '4px' }}>
+            Manage your AI-powered publishing platform
+          </p>
+        </div>
+        <button
+          onClick={() => setLoggedIn(false)}
+          className="btn-ghost"
+          style={{ fontSize: '0.8rem' }}
+        >
+          Logout
+        </button>
+      </div>
 
       {message && (
-        <div className="mb-6 rounded-md bg-gray-100 p-4 text-sm text-gray-800">{message}</div>
+        <div
+          className="mb-6 rounded-lg p-4 text-sm glass animate-fade-in"
+          style={{ color: 'var(--text-primary)' }}
+        >
+          {message}
+        </div>
       )}
 
       {/* Stats cards */}
       {stats && (
-        <div className="grid gap-4 md:grid-cols-4 mb-8">
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <p className="text-sm text-gray-500">Total Posts</p>
-            <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
+        <div className="grid gap-4 md:grid-cols-4 mb-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+          <div className="stat-card">
+            <div className="stat-value">{stats.total}</div>
+            <div className="stat-label">Total Posts</div>
           </div>
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <p className="text-sm text-gray-500">Auto Generated</p>
-            <p className="text-3xl font-bold text-green-600">{stats.autoCount}</p>
+          <div className="stat-card">
+            <div className="stat-value">{stats.autoCount}</div>
+            <div className="stat-label">AI Generated</div>
           </div>
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <p className="text-sm text-gray-500">Last Generation</p>
-            <p className="text-sm font-medium text-gray-900 mt-1">
+          <div className="stat-card">
+            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>
               {stats.lastGeneration
                 ? new Date(stats.lastGeneration).toLocaleString()
                 : 'Never'}
-            </p>
+            </div>
+            <div className="stat-label">Last Generation</div>
           </div>
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <p className="text-sm text-gray-500">Scheduler</p>
-            <p
-              className={`text-lg font-bold ${
-                stats.scheduler.running ? 'text-green-600' : 'text-red-600'
-              }`}
-            >
-              {stats.scheduler.running ? '▶️ Running' : '⏸ Paused'}
-            </p>
+          <div className="stat-card">
+            <div className="flex items-center gap-2">
+              <span
+                className="pulse-dot"
+                style={{
+                  background: stats.scheduler.running ? '#10b981' : '#ef4444',
+                  boxShadow: stats.scheduler.running ? '0 0 8px rgba(16,185,129,0.5)' : '0 0 8px rgba(239,68,68,0.5)',
+                }}
+              />
+              <span style={{
+                fontSize: '0.9rem',
+                fontWeight: 600,
+                color: stats.scheduler.running ? '#34d399' : '#f87171',
+              }}>
+                {stats.scheduler.running ? 'Running' : 'Paused'}
+              </span>
+            </div>
+            <div className="stat-label">Scheduler</div>
           </div>
         </div>
       )}
 
       {/* Actions */}
-      <div className="flex gap-4 mb-8">
+      <div className="flex flex-wrap gap-3 mb-8 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
         <button
           onClick={handleGenerate}
           disabled={generating}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+          className="btn-primary disabled:opacity-50"
         >
-          {generating ? '⏳ Generating...' : '✨ Generate Now'}
+          {generating ? (
+            <>
+              <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              Generating...
+            </>
+          ) : (
+            <>✨ Generate Now</>
+          )}
         </button>
-        <button
-          onClick={handleToggleScheduler}
-          className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-        >
+        <button onClick={handleToggleScheduler} className="btn-ghost">
           {stats?.scheduler.running ? '⏸ Pause Automation' : '▶️ Start Automation'}
         </button>
+        <Link href="/api/export?format=json" className="btn-ghost" target="_blank">
+          📥 Export JSON
+        </Link>
+        <Link href="/api/export?format=txt" className="btn-ghost" target="_blank">
+          📄 Export TXT
+        </Link>
       </div>
 
       {/* Posts list */}
-      <div className="rounded-lg border border-gray-200 bg-white">
-        <div className="border-b border-gray-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">All Posts</h2>
+      <div className="glass animate-fade-in-up" style={{ borderRadius: 'var(--radius-lg)', animationDelay: '0.3s' }}>
+        <div
+          className="px-6 py-4 flex items-center justify-between"
+          style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+        >
+          <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
+            All Posts ({posts.length})
+          </h2>
         </div>
-        <div className="divide-y divide-gray-200">
+        <div>
           {posts.length === 0 ? (
-            <div className="px-6 py-8 text-center text-gray-500">No posts yet</div>
+            <div className="px-6 py-8 text-center" style={{ color: 'var(--text-muted)' }}>
+              No posts yet. Hit &quot;Generate Now&quot; to create one!
+            </div>
           ) : (
-            posts.map((post) => (
-              <div key={post.id} className="flex items-center justify-between px-6 py-4">
+            posts.map((post, i) => (
+              <div
+                key={post.id}
+                className="flex items-center justify-between px-6 py-4 transition-colors"
+                style={{
+                  borderBottom: i < posts.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                }}
+              >
                 <div className="min-w-0 flex-1">
                   <Link
                     href={`/post/${post.slug}`}
-                    className="text-sm font-medium text-gray-900 hover:text-blue-600 truncate block"
+                    className="text-sm font-medium truncate block transition-colors"
+                    style={{ color: 'var(--text-primary)' }}
                   >
                     {post.title}
                   </Link>
                   <div className="flex items-center gap-2 mt-1">
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full ${
-                        post.category === 'blog'
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-red-100 text-red-700'
-                      }`}
-                    >
+                    <span className={`badge ${post.category === 'blog' ? 'badge-blog' : 'badge-news'}`} style={{ fontSize: '0.65rem', padding: '2px 8px' }}>
                       {post.category}
                     </span>
                     {post.autoGenerated && (
-                      <span className="text-xs text-green-600">🤖 Auto</span>
+                      <span className="badge badge-auto" style={{ fontSize: '0.65rem', padding: '2px 8px' }}>
+                        🤖 Auto
+                      </span>
                     )}
-                    <span className="text-xs text-gray-400">
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
                       {new Date(post.createdAt).toLocaleString()}
                     </span>
                   </div>
                 </div>
                 <button
                   onClick={() => handleDelete(post.slug)}
-                  className="ml-4 text-sm text-red-600 hover:text-red-800"
+                  className="ml-4 text-sm transition-colors"
+                  style={{ color: '#f87171' }}
                 >
                   Delete
                 </button>
