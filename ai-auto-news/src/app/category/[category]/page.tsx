@@ -3,17 +3,9 @@ import Pagination from '@/components/Pagination';
 import { getPostsByCategory } from '@/db/posts';
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { getCategoryMeta } from '@/lib/postPresentation';
 
 export const dynamic = 'force-dynamic';
-
-const CATEGORY_META: Record<string, { emoji: string; color: string; description: string }> = {
-  blog: { emoji: '📝', color: '#60a5fa', description: 'In-depth articles and analysis on technology and AI' },
-  news: { emoji: '📰', color: '#f87171', description: 'Breaking news and latest developments in tech' },
-  tech: { emoji: '💻', color: '#22d3ee', description: 'Technical deep-dives and engineering insights' },
-  business: { emoji: '📊', color: '#fbbf24', description: 'Business strategy and industry trends' },
-  sports: { emoji: '🏆', color: '#34d399', description: 'Sports technology and innovation' },
-  ai: { emoji: '🧠', color: '#c084fc', description: 'Artificial intelligence research and applications' },
-};
 
 export async function generateMetadata({
   params,
@@ -21,10 +13,10 @@ export async function generateMetadata({
   params: Promise<{ category: string }>;
 }): Promise<Metadata> {
   const { category } = await params;
-  const title = category.charAt(0).toUpperCase() + category.slice(1);
+  const meta = getCategoryMeta(category);
   return {
-    title: `${title} — AI Auto News`,
-    description: `Browse ${title} posts on AI Auto News`,
+    title: meta.label,
+    description: meta.description,
   };
 }
 
@@ -38,15 +30,12 @@ export default async function CategoryPage({
   const { category } = await params;
   const sp = await searchParams;
   const page = parseInt(sp.page || '1', 10);
-  const { posts, total } = getPostsByCategory(category, page, 10);
-  const totalPages = Math.ceil(total / 10);
-
-  const title = category.charAt(0).toUpperCase() + category.slice(1);
-  const meta = CATEGORY_META[category] || { emoji: '📄', color: '#94a3b8', description: `Posts about ${title}` };
+  const { posts, total } = getPostsByCategory(category, page, 12);
+  const totalPages = Math.ceil(total / 12);
+  const meta = getCategoryMeta(category);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Header */}
       <div className="mb-10 animate-fade-in-up">
         <Link
           href="/"
@@ -59,12 +48,11 @@ export default async function CategoryPage({
           Back to all posts
         </Link>
         <div className="flex items-center gap-3 mb-2">
-          <span className="text-3xl">{meta.emoji}</span>
-          <h1
-            className="text-3xl font-bold"
-            style={{ color: meta.color }}
-          >
-            {title}
+          <span className="badge" style={{ color: meta.color, background: 'rgba(255,255,255,0.05)' }}>
+            {meta.icon}
+          </span>
+          <h1 className="text-3xl font-bold" style={{ color: meta.color }}>
+            {meta.label}
           </h1>
         </div>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
@@ -76,14 +64,9 @@ export default async function CategoryPage({
       </div>
 
       {posts.length === 0 ? (
-        <div className="text-center py-20 animate-fade-in">
-          <div className="text-5xl mb-4">{meta.emoji}</div>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem' }}>
-            No {category} posts yet.
-          </p>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '8px' }}>
-            Check back soon — the AI generates content automatically!
-          </p>
+        <div className="empty-state animate-fade-in">
+          <p>No {meta.label.toLowerCase()} posts yet.</p>
+          <span>Check back soon. The AI publisher adds new coverage automatically.</span>
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

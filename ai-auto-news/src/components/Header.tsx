@@ -10,8 +10,9 @@ export default function Header() {
 
   const links = [
     { href: '/', label: 'Home' },
-    { href: '/category/blog', label: 'Blog' },
-    { href: '/category/news', label: 'News' },
+    { href: '/category/ai', label: 'AI' },
+    { href: '/category/tech', label: 'Tech' },
+    { href: '/category/business', label: 'Business' },
     { href: '/search', label: 'Search', icon: true },
     { href: '/about', label: 'About' },
   ];
@@ -25,7 +26,7 @@ export default function Header() {
     <header
       className="sticky top-0 z-50"
       style={{
-        background: 'rgba(10, 10, 26, 0.8)',
+        background: 'rgba(10, 10, 26, 0.86)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
@@ -33,18 +34,11 @@ export default function Header() {
     >
       <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          <div className="flex items-center">
-            <Link href="/" className="flex items-center gap-2 group">
-              <span className="text-2xl" role="img" aria-label="robot">🤖</span>
-              <span
-                className="text-xl font-bold gradient-text-animate"
-              >
-                AI Auto News
-              </span>
-            </Link>
-          </div>
+          <Link href="/" className="flex items-center gap-2 group">
+            <span className="brand-mark" aria-hidden="true">AI</span>
+            <span className="text-xl font-bold gradient-text-animate">AI Auto News</span>
+          </Link>
 
-          {/* Desktop nav */}
           <div className="hidden md:flex md:items-center md:space-x-1">
             {links.map((link) => (
               <Link
@@ -58,8 +52,12 @@ export default function Header() {
               >
                 {link.icon && (
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
                   </svg>
                 )}
                 {link.label}
@@ -68,27 +66,17 @@ export default function Header() {
 
             <div style={{ width: '1px', height: '20px', background: 'rgba(255,255,255,0.1)', margin: '0 8px' }} />
 
-            <Link
-              href="/admin"
-              className="btn-primary"
-              style={{ padding: '6px 16px', fontSize: '0.8rem' }}
-            >
-              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
+            <Link href="/admin" className="btn-primary" style={{ padding: '6px 16px', fontSize: '0.8rem' }}>
               Admin
             </Link>
           </div>
 
-          {/* Mobile menu button */}
           <button
             type="button"
             className="md:hidden rounded-lg p-2 transition-colors"
             style={{ color: '#94a3b8' }}
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle navigation"
           >
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
               {mobileMenuOpen ? (
@@ -100,7 +88,6 @@ export default function Header() {
           </button>
         </div>
 
-        {/* Mobile menu */}
         {mobileMenuOpen && (
           <div className="md:hidden pb-4 animate-slide-down" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
             <div className="pt-2 space-y-1">
@@ -124,7 +111,7 @@ export default function Header() {
                 style={{ color: '#94a3b8' }}
                 onClick={() => setMobileMenuOpen(false)}
               >
-                ⚙️ Admin Panel
+                Admin Panel
               </Link>
             </div>
           </div>

@@ -42,7 +42,7 @@ export async function GET() {
   <channel>
     <title>AI Auto News</title>
     <link>${BASE_URL}</link>
-    <description>Autonomous AI-powered technology news and analysis</description>
+    <description>Personalized AI-powered news with broad topic coverage and visible source signals</description>
     <language>en-us</language>
     <managingEditor>editor@aiauto.news (AI Auto News)</managingEditor>
     <webMaster>admin@aiauto.news (AI Auto News)</webMaster>

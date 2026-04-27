@@ -12,62 +12,49 @@ export default function Footer() {
     >
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Brand */}
           <div>
             <Link href="/" className="flex items-center gap-2 mb-3">
-              <span className="text-xl">🤖</span>
+              <span className="brand-mark" aria-hidden="true">AI</span>
               <span className="text-lg font-bold gradient-text">AI Auto News</span>
             </Link>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', lineHeight: '1.6' }}>
-              An autonomous AI-powered publishing platform that researches trending topics
-              and generates content automatically.
+              Personalized AI-powered news with broad topic coverage, visible sources, and a local reader profile that stays in your browser.
             </p>
           </div>
 
-          {/* Quick Links */}
           <div>
             <h3 style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.875rem', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Quick Links
+              Sections
             </h3>
             <div className="space-y-2">
               {[
                 { href: '/', label: 'Home' },
-                { href: '/category/blog', label: 'Blog Posts' },
-                { href: '/category/news', label: 'News Articles' },
+                { href: '/category/ai', label: 'AI' },
+                { href: '/category/tech', label: 'Tech' },
+                { href: '/category/business', label: 'Business' },
                 { href: '/search', label: 'Search' },
               ].map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="block text-sm transition-colors"
-                  style={{ color: 'var(--text-muted)' }}
-                >
+                <Link key={link.href} href={link.href} className="block text-sm transition-colors" style={{ color: 'var(--text-muted)' }}>
                   {link.label}
                 </Link>
               ))}
             </div>
           </div>
 
-          {/* Tech Stack */}
           <div>
             <h3 style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.875rem', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Built With
+              Trust Signals
             </h3>
             <div className="flex flex-wrap gap-2">
-              {['Next.js', 'React', 'SQLite', 'Gemini AI', 'TypeScript', 'Tailwind CSS'].map((tech) => (
-                <span
-                  key={tech}
-                  className="badge"
-                  style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', fontSize: '0.7rem' }}
-                >
-                  {tech}
+              {['Source visibility', 'AI disclosure', 'Local preferences', 'RSS feed', 'Search'].map((item) => (
+                <span key={item} className="badge" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', fontSize: '0.7rem' }}>
+                  {item}
                 </span>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Bottom bar */}
         <div
           className="mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4"
           style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}

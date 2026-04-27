@@ -116,6 +116,19 @@ export default function SearchPage() {
   useEffect(() => {
     setPage(1);
     doSearch(debouncedQuery, 1);
+    if (debouncedQuery.trim().length >= 2) {
+      try {
+        const raw = window.localStorage.getItem('ai-auto-news.reader');
+        const current = raw ? JSON.parse(raw) : {};
+        const recentSearches = Array.from(new Set([debouncedQuery.trim(), ...(current.recentSearches || [])])).slice(0, 12);
+        window.localStorage.setItem(
+          'ai-auto-news.reader',
+          JSON.stringify({ ...current, initialized: true, recentSearches }),
+        );
+      } catch {
+        // Search history is only used for optional local personalization.
+      }
+    }
   }, [debouncedQuery, doSearch]);
 
   useEffect(() => {

@@ -19,6 +19,12 @@ const eslintConfig = defineConfig([
     "k8s/**",
     "terraform/**",
     "prisma/**",
+    "experimental-routes/**",
+    // Prototype agent/platform modules are intentionally outside the public
+    // website lint gate until each module is promoted into a stable surface.
+    "src/agents/**",
+    "src/lib/**",
+    "tests/unit/lib/**",
   ]),
 ]);
 

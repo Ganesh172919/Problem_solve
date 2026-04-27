@@ -1,17 +1,31 @@
-import type { Metadata } from "next";
-import "./globals.css";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+const inter = Inter({ subsets: ['latin'], display: 'swap' });
 
 export const metadata: Metadata = {
-  title: "AI Auto News — Autonomous AI Publishing Platform",
+  metadataBase: new URL(BASE_URL),
+  title: {
+    default: 'AI Auto News - Personalized AI-Powered News',
+    template: '%s | AI Auto News',
+  },
   description:
-    "An autonomous AI-powered blog and news platform that researches trending topics, generates content, and publishes automatically.",
+    'A personalized AI-powered news website with broad topic coverage, source visibility, and anonymous reader preferences.',
   openGraph: {
-    title: "AI Auto News",
-    description: "Autonomous AI-Powered Publishing Platform",
-    type: "website",
-    url: "http://localhost:3000",
+    title: 'AI Auto News',
+    description: 'Personalized AI-powered news with visible trust signals.',
+    type: 'website',
+    url: BASE_URL,
+  },
+  alternates: {
+    canonical: BASE_URL,
+    types: {
+      'application/rss+xml': `${BASE_URL}/rss.xml`,
+    },
   },
 };
 
@@ -22,16 +36,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-          rel="stylesheet"
-        />
-      </head>
       <body
-        className="antialiased min-h-screen flex flex-col"
+        className={`${inter.className} antialiased min-h-screen flex flex-col`}
         style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
       >
         <Header />
