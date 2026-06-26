@@ -1,0 +1,383 @@
+AI AUTO NEWS - IMPROVEMENT PLAN
+Generated: 2026-05-01
+Repository root: C:\Users\RAVIPRAKASH\Problem_solve
+
+Scope analyzed
+--------------
+- Reviewed the tracked repository files and the main ai-auto-news project structure.
+- Excluded generated/dependency/secrets artifacts from source review: .git, node_modules, .next, data, .env.local, and tsbuildinfo files.
+- Counted 631 tracked files overall.
+- Counted 438 TypeScript/TSX source files under ai-auto-news/src.
+- Counted 28 active Next.js API route files under src/app/api.
+- Counted 85 experimental route files under experimental-routes/api.
+- Counted 56 unit test files.
+- Did not read local secret values from .env.local.
+
+Checks run
+----------
+- npm run build: PASS.
+- npm run lint: PASS with 5 warnings for unused destructured variables in API routes.
+- npm test: PASS, 55 suites and 604 tests. Warnings remain: deprecated ts-jest globals config, very noisy console output, and Jest force-exits because open handles/timers remain.
+- npm audit --omit=dev: FAIL. Current production dependency audit reports 34 vulnerabilities: 15 critical, 7 high, and 12 moderate.
+- node ./cli/index.js --help from the project root: FAIL. The root install does not include CLI dependencies such as inquirer.
+- Docker/runtime file checks: .next/standalone does not exist after build, while Dockerfile expects it. docker-compose.production.yml also references missing paths such as monitoring/prometheus.yml, monitoring/grafana/*, nginx.conf, and dist/workers/main.js.
+
+Executive summary
+-----------------
+The app currently builds and its unit tests pass, which is a good base. The biggest improvement need is not a single bug. It is alignment: the repository mixes a small localhost-first Next.js/SQLite publishing app with a large set of aspirational platform, SaaS, cloud, SDK, and experimental API artifacts.
+
+The best path is to stabilize the real working product first, then promote or retire the experimental platform pieces deliberately. Priority should be: production packaging, dependency security, source/type coverage, database consistency, API contract compatibility, and documentation cleanup.
+
+Priority 0 - Fix deployment and runtime packaging
+-------------------------------------------------
+Goal: Make the documented Docker/production story actually runnable.
+
+Actions:
+1. Fix Dockerfile build strategy.
+   - next.config.ts currently does not set output: "standalone", but Dockerfile copies .next/standalone.
+   - Either add standalone output or change Dockerfile to use the normal Next production output.
+   - Builder stage should install dev/build dependencies, not only production dependencies, because TypeScript, Tailwind/PostCSS, and build tooling live in devDependencies.
+   - Use npm ci --omit=dev only in the final runtime image if a standalone build is used.
+
+2. Fix docker-compose.production.yml.
+   - It references missing ./monitoring/prometheus.yml. The repo has prometheus.yml at the project root.
+   - It references missing Grafana provisioning folders and missing nginx.conf.
+   - It starts a worker with node dist/workers/main.js, but no dist worker build output exists.
+   - Decide whether workers are in-process only or create a real worker entrypoint and build step.
+
+3. Fix Kubernetes manifests.
+   - The app container expects Postgres/Redis secrets, but the running application is currently SQLite-first.
+   - The Postgres StatefulSet has 3 plain postgres replicas without replication/primary role configuration; this is not a safe production database topology.
+   - Either align Kubernetes with the actual SQLite/local-first app, or complete the Postgres migration before presenting K8s as production-ready.
+
+4. Fix Prometheus integration.
+   - prometheus.yml scrapes /api/metrics, but /api/metrics requires admin cookie auth and returns JSON, not standard Prometheus text exposition.
+   - alerts.yml references metric names that do not appear to be emitted by the current app.
+   - Add a dedicated /api/prometheus endpoint or adjust metrics collection to match prom-client output.
+
+Acceptance criteria:
+- docker build succeeds from a clean checkout.
+- docker compose up starts a working app and health endpoint.
+- Production compose references only files that exist.
+- Monitoring scrape target returns a Prometheus-compatible response.
+
+Priority 1 - Security and dependency hygiene
+--------------------------------------------
+Goal: Remove known high-risk dependency and authentication issues before expanding features.
+
+Actions:
+1. Address npm audit production vulnerabilities.
+   - Upgrade Next.js from 16.1.6 to a fixed version indicated by audit, currently 16.2.4.
+   - Upgrade OpenTelemetry packages together; audit indicates current OpenTelemetry/protobufjs chain has critical issues.
+   - Upgrade DOMPurify/isomorphic-dompurify path to pull patched DOMPurify.
+   - Review uuid, bullmq, @apollo/server, saml2-js, passport-azure-ad, lodash, undici, xmldom, and related transitive fixes.
+   - Remove unused platform dependencies that are not wired into the main app, especially if they introduce audit exposure.
+
+2. Harden admin auth.
+   - In production, fail startup if JWT_SECRET, ADMIN_USERNAME, or ADMIN_PASSWORD are missing or still using defaults.
+   - Set the admin cookie secure flag to true in production.
+   - Add a CSRF token or explicit same-origin check for admin mutation routes.
+   - Remove visible "Default: admin / admin123" guidance from production UI.
+
+3. Fix v1 moderation auth.
+   - /api/v1/moderate currently accepts any present x-api-key value.
+   - Use authenticateApiKey(), tier limits, usage tracking, and scopes consistently with /api/v1/posts, /api/v1/search, and /api/v1/generate.
+
+4. Make rate limiting deployment-aware.
+   - Current in-memory rate limits reset per process and do not work correctly across multiple replicas.
+   - Keep in-memory rate limiting for localhost, but use SQLite/Redis-backed counters for multi-instance deployments.
+
+5. Validate API inputs more consistently.
+   - Validate API key expiration dates.
+   - Bound topic/category/body lengths on generation and moderation endpoints.
+   - Normalize error response shape across public and v1 APIs.
+
+Acceptance criteria:
+- npm audit --omit=dev has no critical/high vulnerabilities, or documented exceptions are explicitly accepted.
+- Production startup refuses insecure default credentials.
+- All v1 endpoints use the same API key auth path.
+- Admin cookie is secure in production.
+
+Priority 2 - Bring source code under real quality gates
+-------------------------------------------------------
+Goal: Stop important source areas from living outside TypeScript and ESLint enforcement.
+
+Findings:
+- tsconfig.json excludes experimental-routes, src/agents, and src/lib.
+- eslint.config.mjs ignores src/agents, src/lib, tests/unit/lib, cli, sdk, k8s, terraform, and prisma.
+- The repo has 287 tracked files under src/lib and 86 under src/agents.
+- Many modules are very large, including files over 800 lines.
+
+Actions:
+1. Split stable code from prototypes.
+   - Keep app-wired code under src/lib and src/agents only if it is typechecked and linted.
+   - Move experimental/prototype modules to a clear experiments or labs directory with a separate, weaker check policy.
+   - Add a short ownership map: stable app, experimental platform modules, SDKs, infra, docs.
+
+2. Gradually remove tsconfig exclusions.
+   - Start with the app-wired files imported by src/app, src/db, src/scheduler, and src/workers.
+   - Fix type errors in promoted files.
+   - Then decide which remaining modules should be deleted, archived, or promoted.
+
+3. Fix current lint warnings.
+   - src/app/api/apikeys/route.ts
+   - src/app/api/users/route.ts
+   - src/app/api/webhooks/route.ts
+   - Use safe object construction helpers instead of unused destructuring variables.
+
+4. Reduce overly large modules.
+   - Prioritize files over 700 lines and modules with many exports.
+   - Split data models, engines, adapters, and orchestration logic into smaller units only when the module is actually used or promoted.
+
+Acceptance criteria:
+- Core runtime files are covered by TypeScript and ESLint.
+- npm run lint has zero warnings.
+- A documented boundary exists for experimental code.
+
+Priority 3 - Database and persistence consistency
+-------------------------------------------------
+Goal: Establish one real persistence model per environment.
+
+Findings:
+- Runtime app uses SQLite through better-sqlite3 and creates tables in src/db/index.ts.
+- prisma/schema.prisma defines a larger PostgreSQL SaaS schema that is not the runtime source of truth.
+- Production compose/K8s/Terraform imply Postgres and Redis, but the primary app path remains SQLite.
+- FTS table sync is partial: createPost inserts title, summary, and tags into posts_fts, but content is not indexed despite the virtual table declaring content=posts. There are no triggers for updates/rebuilds.
+
+Actions:
+1. Decide the primary database path.
+   - Option A: Local-first SQLite remains the supported product. Then label Prisma/Postgres/Redis/K8s/Terraform as future work or remove them from production docs.
+   - Option B: Promote Postgres as production. Then implement Prisma-backed repositories, migrations, test database setup, and deployment migration commands.
+
+2. Add migrations.
+   - Replace implicit schema creation with versioned migration scripts, even for SQLite.
+   - Add tests that verify all repository functions work after a fresh migration.
+
+3. Fix search indexing.
+   - Add FTS triggers for insert/update/delete or rebuild the index deterministically.
+   - Include article content if full-text content search is a promised feature.
+   - Add tests for search by title, summary, tag, and body content.
+
+4. Improve SQLite reliability.
+   - Document single-process/local-first assumptions.
+   - Add graceful shutdown close handling.
+   - Consider busy timeout and backup/export commands.
+
+Acceptance criteria:
+- One persistence model is documented as current.
+- Fresh checkout can initialize the database deterministically.
+- Search tests cover FTS and fallback paths.
+
+Priority 4 - API, SDK, and CLI contract alignment
+-------------------------------------------------
+Goal: Make client-facing surfaces match the actual server.
+
+Findings:
+- SDKs assume response wrappers such as { success, data }, while active v1 routes often return raw objects like { posts, total, page }.
+- SDKs call endpoints that do not currently exist as v1 routes, such as /api/v1/apikeys, /api/v1/webhooks, /api/v1/subscriptions/current, and /api/v1/generate/{jobId}.
+- Active apikeys and webhooks endpoints use query-string deletes, while SDKs use path deletes.
+- CLI defaults to https://api.ai-auto-news.com and is not wired for the localhost-first app.
+- CLI is CommonJS while its package uses ESM-only dependency versions such as chalk 5 and inquirer 9; it also is not installable/runnable from the root dependency install.
+
+Actions:
+1. Create an OpenAPI contract for the real supported API.
+   - Generate docs and SDKs from the contract where possible.
+   - Include response examples produced by route tests.
+
+2. Choose endpoint naming and response shape.
+   - Either wrap all v1 responses as { success, data, error, metadata }, or update SDKs to match current route responses.
+   - Add route aliases only when they are intentionally supported.
+
+3. Stabilize CLI package.
+   - Convert CLI to ESM or pin compatible CommonJS dependency versions.
+   - Add a root script to install/test the CLI or move it to a workspace package.
+   - Support localhost mode by default.
+   - Add smoke tests for login, list posts, and generate against a local dev server.
+
+4. Package SDKs only after contract is stable.
+   - TypeScript SDK should avoid any where practical.
+   - Python SDK needs packaging metadata and tests.
+   - Go SDK needs go.mod and tests.
+
+Acceptance criteria:
+- SDK operations pass against the local app.
+- CLI --help works after documented setup.
+- API docs examples match real responses.
+
+Priority 5 - Test suite and CI hardening
+----------------------------------------
+Goal: Convert "tests pass" into a clean, reliable signal.
+
+Actions:
+1. Update Jest config.
+   - Move ts-jest config out of deprecated globals.
+   - Remove forceExit by cleaning up timers, intervals, and singleton background services in tests.
+   - Add afterEach/afterAll cleanup for caches, rate limiters, and schedulers.
+
+2. Reduce noisy test logs.
+   - Make logger test-aware or allow a silent test logger.
+   - Keep logs available for failed tests, not every passing test.
+
+3. Add integration tests for active routes.
+   - /api/auth
+   - /api/posts and /api/posts/[slug]
+   - /api/search
+   - /api/generate
+   - /api/scheduler
+   - /api/v1/posts, /api/v1/search, /api/v1/generate, /api/v1/moderate
+   - /api/apikeys and /api/webhooks
+
+4. Add CI workflow.
+   - npm ci
+   - npm run lint
+   - npm test
+   - npm run build
+   - npm audit --omit=dev, at least as a reporting step until remediated
+   - optional smoke test with mock AI and isolated test database
+
+Acceptance criteria:
+- Tests pass without forceExit.
+- CI runs on every pull request.
+- Route integration tests guard the actual supported product.
+
+Priority 6 - Product and UX polish
+----------------------------------
+Goal: Make the working app feel intentional and easier to trust.
+
+Actions:
+1. Improve admin safety and clarity.
+   - Show environment/security status in admin without exposing defaults as suggested credentials.
+   - Make scheduler status explain whether it is runtime-enabled, disabled, or waiting for first request.
+
+2. Improve recommendation UX.
+   - Add loading, empty, and error states for personalized recommendations.
+   - Abort stale recommendation fetches when preferences change quickly.
+   - Add accessible labels to preference controls.
+
+3. Improve content trust.
+   - Surface sourceReferences more consistently on cards and article pages.
+   - Show whether content is mock-generated, AI-generated, or manually created.
+   - Add quality/moderation status before publishing generated content.
+
+4. Improve visual consistency.
+   - The current UI is strongly dark purple/blue. Broaden the palette and improve contrast where needed.
+   - Keep layout density appropriate for a news/publishing app.
+   - Review mobile text wrapping and card layout under narrow viewports.
+
+Acceptance criteria:
+- Admin views explain app state clearly.
+- Recommendation controls have robust loading/error behavior.
+- Article pages expose trust/provenance signals.
+
+Priority 7 - AI publishing quality
+----------------------------------
+Goal: Make autonomous publishing safer and more useful.
+
+Actions:
+1. Make generation deterministic enough to operate.
+   - Replace random blog/news choice with configurable content strategy.
+   - Add deduplication beyond recent titles, using normalized topics and semantic tags.
+   - Add source/citation requirements for non-mock providers.
+
+2. Wire quality gates.
+   - Use moderation/content quality scoring before createPost.
+   - Reject or draft low-confidence content rather than publishing everything.
+   - Add a draft/approval state if editorial control becomes a goal.
+
+3. Improve scheduler behavior.
+   - Avoid immediate publish on first runtime initialization unless explicitly configured.
+   - Track last failure, next run, and retry state persistently.
+   - Avoid duplicate generation when multiple app processes are running.
+
+4. Expand provider abstraction.
+   - Keep mock mode as first-class.
+   - Add explicit provider health checks.
+   - Add retry/backoff per provider and per endpoint.
+
+Acceptance criteria:
+- Generated posts have provenance and quality metadata.
+- Scheduler cannot double-run across processes in a supported deployment mode.
+- Generation failures are visible and recoverable.
+
+Priority 8 - Documentation cleanup
+----------------------------------
+Goal: Make docs trustworthy for the current app.
+
+Findings:
+- Several docs and CLI strings show mojibake/encoding damage, such as corrupted dashes, emoji, checkmarks, and quotes.
+- Documentation has improved current-vs-future separation, but some deployment/SDK/production docs still imply capabilities that are not fully wired.
+
+Actions:
+1. Fix encoding across README.md, docs/*.md, PLATFORM_*.md, VISION.md, and CLI output strings.
+2. Keep README focused on local-first setup and supported features.
+3. Move aspirational platform material to VISION.md or a clearly marked future folder.
+4. Add a "Known limitations" section:
+   - SQLite/local-first runtime
+   - experimental v2/v3 APIs
+   - non-production scheduler/process assumptions
+   - SDK/CLI contract status
+5. Update docs after deployment/API decisions above.
+
+Acceptance criteria:
+- No visible mojibake in docs or CLI output.
+- Docs match the app a user can run today.
+- Future features are clearly labeled as future.
+
+Suggested execution order
+-------------------------
+First 2 days:
+1. Fix Dockerfile/next.config mismatch.
+2. Fix production compose missing paths or mark production compose unsupported.
+3. Fix npm audit critical/high issues that have straightforward upgrades.
+4. Fix v1/moderate authentication.
+5. Fix lint warnings.
+
+Week 1:
+1. Add CI for lint, tests, build, and audit reporting.
+2. Update Jest config and remove forceExit/open handles.
+3. Decide SQLite-first vs Postgres-first and rewrite docs accordingly.
+4. Add route integration tests for the core API.
+
+Weeks 2-3:
+1. Align SDKs and CLI with the real API.
+2. Promote or move app-wired src/lib and src/agents code into type/lint coverage.
+3. Add migrations and search index tests.
+4. Clean docs encoding and current/future separation.
+
+Month 2:
+1. Decide whether the SaaS/platform modules are a real product direction.
+2. Retire unused dependencies and generated-looking modules that are not part of the product.
+3. Add production observability, distributed scheduling/locking, and real worker separation only if production hosting is still a goal.
+
+Recommended first PRs
+---------------------
+PR 1: "Make Docker build match Next output"
+- Add output: "standalone" or change Dockerfile.
+- Install build dependencies in builder stage.
+- Validate docker build locally.
+
+PR 2: "Harden auth and v1 moderation"
+- Require secure production secrets.
+- Set secure cookies in production.
+- Use authenticateApiKey for /api/v1/moderate.
+- Add tests.
+
+PR 3: "Clean project checks"
+- Fix five lint warnings.
+- Modernize ts-jest config.
+- Reduce test logger noise.
+- Remove forceExit by cleaning timers.
+
+PR 4: "Document current supported architecture"
+- Fix mojibake.
+- Mark Docker/K8s/Terraform/SDK/CLI status honestly.
+- Add known limitations.
+
+PR 5: "Define stable API contract"
+- Add OpenAPI or route contract tests.
+- Align TypeScript SDK with actual responses.
+- Decide path-vs-query deletes for API keys and webhooks.
+
+Notes
+-----
+The project is strongest when treated as a local-first AI publishing app. The platform/SaaS/cloud layer may become valuable later, but today it creates the most risk because many of those files are not in the main type/lint/build path and several deployment artifacts refer to missing or incompatible runtime pieces. Stabilizing the real app first will make every future feature cheaper to trust.
