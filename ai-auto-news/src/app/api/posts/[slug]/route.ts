@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPostBySlug, deletePost } from '@/db/posts';
 import { verifyToken } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 
 export async function GET(
   _request: NextRequest,
@@ -16,7 +17,7 @@ export async function GET(
 
     return NextResponse.json(post);
   } catch (error) {
-    console.error('Error fetching post:', error);
+    logger.error('Error fetching post', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Failed to fetch post' }, { status: 500 });
   }
 }
@@ -40,7 +41,7 @@ export async function DELETE(
     deletePost(post.id);
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting post:', error);
+    logger.error('Error deleting post', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Failed to delete post' }, { status: 500 });
   }
 }

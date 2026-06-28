@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import { getSchedulerStatus, toggleScheduler } from '@/scheduler/autoPublisher';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
     const status = getSchedulerStatus();
     return NextResponse.json(status);
   } catch (error) {
-    console.error('Error getting scheduler status:', error);
+    logger.error('Error getting scheduler status', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Failed to get status' }, { status: 500 });
   }
 }
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
     const running = toggleScheduler();
     return NextResponse.json({ running });
   } catch (error) {
-    console.error('Error toggling scheduler:', error);
+    logger.error('Error toggling scheduler', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Failed to toggle scheduler' }, { status: 500 });
   }
 }

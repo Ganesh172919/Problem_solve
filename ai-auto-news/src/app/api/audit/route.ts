@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import { queryAuditLog, getRecentAuditEntries, purgeOldAuditLogs } from '@/db/auditLog';
+import { logger } from '@/lib/logger';
 
 // GET /api/audit — Query audit log (admin only)
 export async function GET(request: NextRequest) {
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
       totalPages: Math.ceil(result.total / limit),
     });
   } catch (error) {
-    console.error('Error in audit GET:', error);
+    logger.error('Error in audit GET', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -56,7 +57,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true, purged, olderThanDays: days });
   } catch (error) {
-    console.error('Error in audit DELETE:', error);
+    logger.error('Error in audit DELETE', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

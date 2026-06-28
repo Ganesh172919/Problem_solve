@@ -6,6 +6,17 @@ module.exports = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
+  transform: {
+    '^.+\\.tsx?$': [
+      'ts-jest',
+      {
+        tsconfig: {
+          jsx: 'react',
+          esModuleInterop: true,
+        },
+      },
+    ],
+  },
   collectCoverageFrom: [
     // Only collect coverage from source files that have corresponding unit tests.
     // The codebase contains 400+ auto-generated lib modules; including untested files
@@ -67,12 +78,4 @@ module.exports = {
   // Many singleton services (cache, metrics) use background timers; forceExit
   // prevents Jest workers from hanging after all tests complete.
   forceExit: true,
-  globals: {
-    'ts-jest': {
-      tsconfig: {
-        jsx: 'react',
-        esModuleInterop: true,
-      },
-    },
-  },
 };

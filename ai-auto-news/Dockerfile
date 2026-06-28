@@ -10,8 +10,8 @@ RUN apk add --no-cache libc6-compat python3 make g++
 # Copy package files
 COPY package.json package-lock.json* ./
 
-# Install dependencies
-RUN npm ci --only=production && \
+# Install ALL dependencies (including devDependencies for build)
+RUN npm ci && \
     npm cache clean --force
 
 # Rebuild the source code only when needed
@@ -40,12 +40,12 @@ ENV NODE_ENV=production \
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-# Copy necessary files
+# Copy standalone output (includes server and minimal node_modules)
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Create data directory for SQLite (optional)
+# Create data directory for SQLite
 RUN mkdir -p /app/data && chown -R nextjs:nodejs /app/data
 
 USER nextjs

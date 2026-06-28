@@ -6,6 +6,7 @@ import { metrics } from '@/lib/metrics';
 import { TIER_LIMITS } from '@/lib/config';
 import { canGenerateContent } from '@/lib/featureGate';
 import { orchestrate } from '@/agents/agentOrchestrator';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   const startMs = Date.now();
@@ -89,7 +90,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const durationMs = Date.now() - startMs;
     metrics.record('POST', endpoint, durationMs, true);
-    console.error('Error in v1/generate POST:', error);
+    logger.error('Error in v1/generate POST', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

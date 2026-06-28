@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getABTestingEngine } from '../../../../lib/aiDrivenABTestingEngine';
+import { serializeError } from '@/lib/errorSerializer';
 import type { Experiment, MetricObservation } from '../../../../lib/aiDrivenABTestingEngine';
 
 const engine = getABTestingEngine();
@@ -32,7 +33,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     }
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return NextResponse.json({ error: serializeError(err) }, { status: 500 });
   }
 }
 
@@ -66,6 +67,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return NextResponse.json({ error: serializeError(err) }, { status: 500 });
   }
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTransactionManager } from '../../../../lib/crossServiceTransactionManager';
+import { serializeError } from '@/lib/errorSerializer';
 
 export async function GET(req: NextRequest) {
   try {
@@ -30,7 +31,7 @@ export async function GET(req: NextRequest) {
     }
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return NextResponse.json({ error: serializeError(err) }, { status: 500 });
   }
 }
 
@@ -78,6 +79,6 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return NextResponse.json({ error: serializeError(err) }, { status: 500 });
   }
 }

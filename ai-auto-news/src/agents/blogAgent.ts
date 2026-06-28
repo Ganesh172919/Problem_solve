@@ -1,6 +1,8 @@
 import { ResearchResult, BlogContent } from '@/types';
 import { getAiProvider, getGeminiApiKey } from '@/lib/aiProvider';
 import { rateLimitedFetch } from '@/lib/rateLimiter';
+import { logger } from '@/lib/logger';
+import { APP_CONFIG } from '@/lib/config';
 import { mockBlog } from './mockAi';
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
@@ -11,7 +13,7 @@ export async function blogAgent(research: ResearchResult): Promise<BlogContent> 
 
   if (provider === 'mock' || !apiKey) {
     if (provider === 'gemini' && !apiKey) {
-      console.warn('[BlogAgent] AI_PROVIDER=gemini but GEMINI_API_KEY is missing. Falling back to mock mode.');
+      logger.warn('[BlogAgent] AI_PROVIDER=gemini but GEMINI_API_KEY is missing. Falling back to mock mode.');
     }
     return mockBlog(research);
   }
@@ -20,7 +22,7 @@ export async function blogAgent(research: ResearchResult): Promise<BlogContent> 
     const prompt = buildBlogPrompt(research);
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 60000);
+    const timeout = setTimeout(() => controller.abort(), APP_CONFIG.agentTimeouts.blog);
 
     const response = await rateLimitedFetch(
       `${GEMINI_API_URL}?key=${apiKey}`,
@@ -53,14 +55,14 @@ export async function blogAgent(research: ResearchResult): Promise<BlogContent> 
     // Check if response was truncated due to token limit
     const finishReason = data.candidates?.[0]?.finishReason;
     if (finishReason === 'MAX_TOKENS') {
-      console.warn('[BlogAgent] Response was truncated (MAX_TOKENS). Attempting to repair JSON...');
+      logger.warn('[BlogAgent] Response was truncated (MAX_TOKENS). Attempting to repair JSON...');
     }
 
     const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
     return parseBlogResponse(content, research);
   } catch (error) {
-    console.error('Blog agent error:', error);
+    logger.error('Blog agent error', error instanceof Error ? error : undefined);
     throw error instanceof Error
       ? error
       : new Error('Blog agent failed with an unknown error');
@@ -174,7 +176,7 @@ function parseBlogResponse(content: string, research: ResearchResult): BlogConte
   try {
     const repaired = repairTruncatedJson(cleaned);
     const parsed = JSON.parse(repaired);
-    console.warn('[BlogAgent] Successfully repaired truncated JSON response');
+    logger.warn('[BlogAgent] Successfully repaired truncated JSON response');
     return validateBlogContent(parsed);
   } catch {
     // continue
@@ -188,7 +190,7 @@ function parseBlogResponse(content: string, research: ResearchResult): BlogConte
   const summaryMatch = cleaned.match(/"summary"\s*:\s*"([^"]+)"/);
 
   if (titleMatch && (contentMatch || summaryMatch)) {
-    console.warn('[BlogAgent] Extracted partial data from malformed JSON response');
+    logger.warn('[BlogAgent] Extracted partial data from malformed JSON response');
     const title = titleMatch[1];
     return {
       title,
@@ -200,7 +202,7 @@ function parseBlogResponse(content: string, research: ResearchResult): BlogConte
     };
   }
 
-  console.error('Raw Gemini blog response:', content.substring(0, 500));
+  logger.error('[BlogAgent] Failed to parse response', undefined, { responsePreview: content.substring(0, 500) });
   throw new Error(`Failed to parse Gemini blog response for topic: ${research.topic}`);
 }
 

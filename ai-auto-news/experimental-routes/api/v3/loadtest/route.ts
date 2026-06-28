@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getLoadTesting } from '../../../../lib/intelligentLoadTesting';
+import { serializeError } from '@/lib/errorSerializer';
 
 const engine = getLoadTesting();
 
@@ -33,7 +34,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     if (action === 'forecast' && scenarioId) return NextResponse.json(engine.forecastLoad(scenarioId));
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return NextResponse.json({ error: serializeError(err) }, { status: 500 });
   }
 }
 
@@ -80,6 +81,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return NextResponse.json({ error: serializeError(err) }, { status: 500 });
   }
 }

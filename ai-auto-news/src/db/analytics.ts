@@ -1,11 +1,12 @@
 import { v4 as uuidv4 } from 'uuid';
 import getDb from './index';
+import { safeJsonParse } from './safeParse';
 import { AnalyticsEvent, AnalyticsEventRow } from '@/types/saas';
 
 function rowToEvent(row: AnalyticsEventRow): AnalyticsEvent {
   return {
     ...row,
-    properties: JSON.parse(row.properties || '{}'),
+    properties: safeJsonParse<Record<string, unknown>>(row.properties, {}),
   };
 }
 

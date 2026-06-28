@@ -32,6 +32,7 @@ interface Stats {
 
 export default function AdminPage() {
   const [loggedIn, setLoggedIn] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
@@ -40,6 +41,18 @@ export default function AdminPage() {
   const [generating, setGenerating] = useState(false);
   const [message, setMessage] = useState('');
 
+  // Verify existing JWT cookie on mount
+  useEffect(() => {
+    fetch('/api/auth')
+      .then((res) => {
+        if (res.ok) setLoggedIn(true);
+      })
+      .catch(() => {
+        // Cookie invalid or expired — stay on login
+      })
+      .finally(() => setCheckingAuth(false));
+  }, []);
+
   const fetchData = useCallback(async () => {
     try {
       const [statsRes, postsRes] = await Promise.all([
@@ -47,6 +60,10 @@ export default function AdminPage() {
         fetch('/api/posts?limit=50'),
       ]);
 
+      if (statsRes.status === 401) {
+        setLoggedIn(false);
+        return;
+      }
       if (statsRes.ok) {
         setStats(await statsRes.json());
       }
@@ -54,17 +71,28 @@ export default function AdminPage() {
         const data = await postsRes.json();
         setPosts(data.posts || []);
       }
-    } catch (err) {
-      console.error('Failed to fetch data:', err);
+    } catch {
+      // Non-fatal — will retry on next interval
     }
   }, []);
 
   useEffect(() => {
-    if (loggedIn) {
-      fetchData();
-      const interval = setInterval(fetchData, 30000);
-      return () => clearInterval(interval);
-    }
+    if (!loggedIn) return;
+
+    fetchData();
+
+    const interval = setInterval(fetchData, 30000);
+
+    // Refresh immediately when tab becomes visible again
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') fetchData();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [loggedIn, fetchData]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -136,6 +164,18 @@ export default function AdminPage() {
     }
   };
 
+  // ---- Auth Check Loading ----
+  if (checkingAuth) {
+    return (
+      <div className="mx-auto max-w-md px-4 py-20 text-center">
+        <div className="animate-pulse space-y-4">
+          <div className="h-12 w-12 rounded-full mx-auto" style={{ background: 'var(--bg-glass)' }} />
+          <div className="h-4 rounded w-32 mx-auto" style={{ background: 'var(--bg-glass)' }} />
+        </div>
+      </div>
+    );
+  }
+
   // ---- Login Screen ----
   if (!loggedIn) {
     return (
@@ -192,7 +232,7 @@ export default function AdminPage() {
           </form>
 
           <p className="mt-4 text-center" style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-            Default: admin / admin123 (set in .env)
+            Set credentials via ADMIN_USERNAME and ADMIN_PASSWORD in .env.local
           </p>
         </div>
       </div>
@@ -220,6 +260,8 @@ export default function AdminPage() {
 
       {message && (
         <div
+          role="status"
+          aria-live="polite"
           className="mb-6 rounded-lg p-4 text-sm glass animate-fade-in"
           style={{ color: 'var(--text-primary)' }}
         >

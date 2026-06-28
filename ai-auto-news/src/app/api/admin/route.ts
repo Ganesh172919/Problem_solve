@@ -6,6 +6,7 @@ import { getUserStats } from '@/db/users';
 import { getSubscriptionStats } from '@/db/subscriptions';
 import { getTaskQueueStatus } from '@/workers/taskQueue';
 import { getSystemUsageSummary } from '@/db/usage';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
       usage: usageSummary,
     });
   } catch (error) {
-    console.error('Error getting admin stats:', error);
+    logger.error('Error getting admin stats', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Failed to get stats' }, { status: 500 });
   }
 }

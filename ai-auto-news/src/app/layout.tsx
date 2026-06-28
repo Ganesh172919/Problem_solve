@@ -40,8 +40,15 @@ export default function RootLayout({
         className={`${inter.className} antialiased min-h-screen flex flex-col`}
         style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
       >
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:rounded-lg focus:font-semibold"
+          style={{ background: 'var(--gradient-primary)', color: 'white' }}
+        >
+          Skip to content
+        </a>
         <Header />
-        <main className="flex-1">{children}</main>
+        <main id="main-content" className="flex-1">{children}</main>
         <Footer />
       </body>
     </html>

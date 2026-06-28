@@ -1,6 +1,8 @@
 import { ResearchResult, NewsContent } from '@/types';
 import { getAiProvider, getGeminiApiKey } from '@/lib/aiProvider';
 import { rateLimitedFetch } from '@/lib/rateLimiter';
+import { logger } from '@/lib/logger';
+import { APP_CONFIG } from '@/lib/config';
 import { mockNews } from './mockAi';
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
@@ -11,7 +13,7 @@ export async function newsAgent(research: ResearchResult): Promise<NewsContent> 
 
   if (provider === 'mock' || !apiKey) {
     if (provider === 'gemini' && !apiKey) {
-      console.warn('[NewsAgent] AI_PROVIDER=gemini but GEMINI_API_KEY is missing. Falling back to mock mode.');
+      logger.warn('[NewsAgent] AI_PROVIDER=gemini but GEMINI_API_KEY is missing. Falling back to mock mode.');
     }
     return mockNews(research);
   }
@@ -20,7 +22,7 @@ export async function newsAgent(research: ResearchResult): Promise<NewsContent> 
     const prompt = buildNewsPrompt(research);
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 45000);
+    const timeout = setTimeout(() => controller.abort(), APP_CONFIG.agentTimeouts.news);
 
     const response = await rateLimitedFetch(
       `${GEMINI_API_URL}?key=${apiKey}`,
@@ -53,14 +55,14 @@ export async function newsAgent(research: ResearchResult): Promise<NewsContent> 
     // Check if response was truncated due to token limit
     const finishReason = data.candidates?.[0]?.finishReason;
     if (finishReason === 'MAX_TOKENS') {
-      console.warn('[NewsAgent] Response was truncated (MAX_TOKENS). Attempting to repair JSON...');
+      logger.warn('[NewsAgent] Response was truncated (MAX_TOKENS). Attempting to repair JSON...');
     }
 
     const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
     return parseNewsResponse(content, research);
   } catch (error) {
-    console.error('News agent error:', error);
+    logger.error('News agent error', error instanceof Error ? error : undefined);
     throw error instanceof Error
       ? error
       : new Error('News agent failed with an unknown error');
@@ -175,7 +177,7 @@ function parseNewsResponse(content: string, research: ResearchResult): NewsConte
   try {
     const repaired = repairTruncatedJson(cleaned);
     const parsed = JSON.parse(repaired);
-    console.warn('[NewsAgent] Successfully repaired truncated JSON response');
+    logger.warn('[NewsAgent] Successfully repaired truncated JSON response');
     return validateNewsContent(parsed);
   } catch {
     // continue
@@ -189,7 +191,7 @@ function parseNewsResponse(content: string, research: ResearchResult): NewsConte
   const summaryMatch = cleaned.match(/"summary"\s*:\s*"([^"]+)"/);
 
   if (titleMatch && (contentMatch || summaryMatch)) {
-    console.warn('[NewsAgent] Extracted partial data from malformed JSON response');
+    logger.warn('[NewsAgent] Extracted partial data from malformed JSON response');
     const title = titleMatch[1];
     return {
       title,
@@ -201,7 +203,7 @@ function parseNewsResponse(content: string, research: ResearchResult): NewsConte
     };
   }
 
-  console.error('Raw Gemini news response:', content.substring(0, 500));
+  logger.error('[NewsAgent] Failed to parse response', undefined, { responsePreview: content.substring(0, 500) });
   throw new Error(`Failed to parse Gemini news response for topic: ${research.topic}`);
 }
 

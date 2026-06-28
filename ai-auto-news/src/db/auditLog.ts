@@ -1,5 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import getDb from './index';
+import { safeJsonParse } from './safeParse';
+import { logger } from '@/lib/logger';
 
 export interface AuditLogEntry {
   id: string;
@@ -21,7 +23,7 @@ interface AuditLogRow extends Omit<AuditLogEntry, 'details'> {
 function rowToEntry(row: AuditLogRow): AuditLogEntry {
   return {
     ...row,
-    details: JSON.parse(row.details || '{}'),
+    details: safeJsonParse<Record<string, unknown>>(row.details, {}),
   };
 }
 
@@ -90,8 +92,9 @@ export function writeAuditLog(params: {
       params.userAgent || null,
       now,
     );
-  } catch {
+  } catch (err) {
     // Audit log failures must never crash the application
+    logger.debug('Audit log write failed (non-fatal)', { action: params.action, error: String(err) });
   }
 }
 

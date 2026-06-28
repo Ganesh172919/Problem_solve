@@ -1,13 +1,14 @@
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import getDb from './index';
+import { safeJsonParse } from './safeParse';
 import { ApiKey, ApiKeyRow } from '@/types/saas';
 import { APP_CONFIG } from '@/lib/config';
 
 function rowToApiKey(row: ApiKeyRow): ApiKey {
   return {
     ...row,
-    scopes: JSON.parse(row.scopes || '["read"]'),
+    scopes: safeJsonParse<string[]>(row.scopes, ['read']),
     isActive: row.isActive === 1,
   };
 }

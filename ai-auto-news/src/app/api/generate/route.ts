@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import { autonomousPublisher } from '@/agents/autonomousPublisher';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,7 +13,7 @@ export async function POST(request: NextRequest) {
     const result = await autonomousPublisher();
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Error generating content:', error);
+    logger.error('Error generating content', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Failed to generate content' }, { status: 500 });
   }
 }

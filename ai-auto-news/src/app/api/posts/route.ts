@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllPosts, getPostsByCategory, getCategories } from '@/db/posts';
 import { initializeScheduler } from '@/lib/scheduler-init';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
       totalPages: Math.ceil(result.total / limit),
     });
   } catch (error) {
-    console.error('Error fetching posts:', error);
+    logger.error('Error fetching posts', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Failed to fetch posts' }, { status: 500 });
   }
 }

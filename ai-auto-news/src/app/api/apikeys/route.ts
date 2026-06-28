@@ -8,6 +8,7 @@ import {
 import { authenticateApiKey } from '@/lib/apiKeyAuth';
 import { validateApiKeyName, validateScopes, ValidationError } from '@/lib/validation';
 import { TIER_LIMITS } from '@/lib/config';
+import { logger } from '@/lib/logger';
 
 // GET /api/apikeys — List user's API keys
 export async function GET(request: NextRequest) {
@@ -80,7 +81,7 @@ export async function POST(request: NextRequest) {
       { status: 201 },
     );
   } catch (error) {
-    console.error('Error in apikeys POST:', error);
+    logger.error('Error in apikeys POST', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

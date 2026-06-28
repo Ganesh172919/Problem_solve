@@ -9,6 +9,7 @@ import {
 import { authenticateApiKey } from '@/lib/apiKeyAuth';
 import { canUseCustomTopics } from '@/lib/featureGate';
 import { writeAuditLog } from '@/db/auditLog';
+import { logger } from '@/lib/logger';
 
 const MAX_TOPICS_PER_USER = 50;
 
@@ -89,7 +90,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ topic: created }, { status: 201 });
   } catch (error) {
-    console.error('Error in topics POST:', error);
+    logger.error('Error in topics POST', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -152,7 +153,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error in topics PATCH:', error);
+    logger.error('Error in topics PATCH', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

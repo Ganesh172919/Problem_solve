@@ -211,6 +211,28 @@ export function getDb(): Database.Database {
     );
   `);
 
+  // Add FTS triggers for insert/update/delete sync
+  // These ensure the FTS index stays consistent with the posts table.
+  const triggerSQL = `
+    CREATE TRIGGER IF NOT EXISTS posts_fts_ai AFTER INSERT ON posts BEGIN
+      INSERT INTO posts_fts(rowid, id, title, summary, tags)
+      VALUES (new.rowid, new.id, new.title, new.summary, new.tags);
+    END;
+
+    CREATE TRIGGER IF NOT EXISTS posts_fts_ad AFTER DELETE ON posts BEGIN
+      INSERT INTO posts_fts(posts_fts, rowid, id, title, summary, tags)
+      VALUES ('delete', old.rowid, old.id, old.title, old.summary, old.tags);
+    END;
+
+    CREATE TRIGGER IF NOT EXISTS posts_fts_au AFTER UPDATE ON posts BEGIN
+      INSERT INTO posts_fts(posts_fts, rowid, id, title, summary, tags)
+      VALUES ('delete', old.rowid, old.id, old.title, old.summary, old.tags);
+      INSERT INTO posts_fts(rowid, id, title, summary, tags)
+      VALUES (new.rowid, new.id, new.title, new.summary, new.tags);
+    END;
+  `;
+  db.exec(triggerSQL);
+
   return db;
 }
 

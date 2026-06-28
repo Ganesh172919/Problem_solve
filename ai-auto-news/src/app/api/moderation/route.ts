@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { moderateContent, getModerationResult, getReviewQueue, getModerationAnalytics } from '@/lib/contentModerationEngine';
 import type { ModerationRequest } from '@/lib/contentModerationEngine';
+import { logger } from '@/lib/logger';
 
 // POST /api/moderation — Submit content for moderation
 export async function POST(request: NextRequest) {
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ result }, { status: 200 });
   } catch (error) {
-    console.error('Moderation error:', error);
+    logger.error('Moderation error', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -59,7 +60,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ error: 'Specify requestId or view=queue|analytics' }, { status: 400 });
   } catch (error) {
-    console.error('Moderation GET error:', error);
+    logger.error('Moderation GET error', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

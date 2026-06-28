@@ -11,6 +11,7 @@ import {
   getMarketplaceListing,
   updatePluginConfig,
 } from '@/lib/pluginSystem';
+import { logger } from '@/lib/logger';
 
 // GET /api/plugins — List installed plugins or search marketplace
 export async function GET(request: NextRequest) {
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
     const plugins = getTenantPlugins(tenantId);
     return NextResponse.json({ plugins, count: plugins.length });
   } catch (error) {
-    console.error('Plugins GET error:', error);
+    logger.error('Plugins GET error', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -96,7 +97,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 });
   } catch (error) {
-    console.error('Plugins POST error:', error);
+    logger.error('Plugins POST error', error instanceof Error ? error : undefined);
     return NextResponse.json({
       error: error instanceof Error ? error.message : 'Internal server error',
     }, { status: 500 });

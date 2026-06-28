@@ -1,12 +1,13 @@
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
 import getDb from './index';
+import { safeJsonParse } from './safeParse';
 import { Webhook, WebhookRow } from '@/types/saas';
 
 function rowToWebhook(row: WebhookRow): Webhook {
   return {
     ...row,
-    events: JSON.parse(row.events || '[]'),
+    events: safeJsonParse<string[]>(row.events, []),
     isActive: row.isActive === 1,
   };
 }

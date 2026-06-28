@@ -11,6 +11,7 @@ import {
   getExperimentStats,
 } from '@/lib/experimentationEngine';
 import type { Experiment } from '@/lib/experimentationEngine';
+import { logger } from '@/lib/logger';
 
 // GET /api/experiments — List experiments or get stats
 export async function GET(request: NextRequest) {
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
     const experiments = listExperiments(status ?? undefined);
     return NextResponse.json({ experiments, count: experiments.length });
   } catch (error) {
-    console.error('Experiments GET error:', error);
+    logger.error('Experiments GET error', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -94,7 +95,7 @@ export async function POST(request: NextRequest) {
     const exp = createExperiment(body.experiment as Parameters<typeof createExperiment>[0]);
     return NextResponse.json({ experiment: exp }, { status: 201 });
   } catch (error) {
-    console.error('Experiments POST error:', error);
+    logger.error('Experiments POST error', error instanceof Error ? error : undefined);
     return NextResponse.json({
       error: error instanceof Error ? error.message : 'Internal server error',
     }, { status: 500 });

@@ -142,40 +142,51 @@ export default function DashboardPage() {
 
   if (!authenticated) {
     return (
-      <div className="mx-auto max-w-md px-4 py-20">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2 text-center">Developer Dashboard</h1>
-        <p className="text-gray-500 text-sm text-center mb-8">
-          Enter your API key to manage your keys and subscription.
-        </p>
-
-        <form onSubmit={handleAuth} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">API Key</label>
-            <input
-              type="text"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="aian_..."
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm font-mono text-gray-900"
-              required
-            />
+      <div className="mx-auto max-w-md px-4 py-20 animate-fade-in-up">
+        <div className="glass-strong p-8" style={{ borderRadius: 'var(--radius-xl)' }}>
+          <div className="text-center mb-6">
+            <div className="text-4xl mb-3">🔑</div>
+            <h1 className="text-2xl font-bold gradient-text mb-1">Developer Dashboard</h1>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+              Enter your API key to manage your keys and subscription.
+            </p>
           </div>
-          {authError && <p className="text-red-600 text-sm">{authError}</p>}
-          <button
-            type="submit"
-            className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500"
-          >
-            Access Dashboard
-          </button>
-        </form>
 
-        <div className="mt-6 rounded-lg bg-gray-50 border border-gray-200 p-4 text-sm text-gray-600">
-          <p className="font-medium mb-2">Don&apos;t have an API key?</p>
-          <ol className="list-decimal list-inside space-y-1 text-xs">
-            <li>Register a user account: <code className="bg-gray-100 px-1 rounded">POST /api/users</code></li>
-            <li>Create an API key: <code className="bg-gray-100 px-1 rounded">POST /api/apikeys</code></li>
-            <li>Come back here with your key.</li>
-          </ol>
+          <form onSubmit={handleAuth} className="space-y-4">
+            <div>
+              <label htmlFor="dashboard-api-key" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+                API Key
+              </label>
+              <input
+                id="dashboard-api-key"
+                type="text"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="aian_..."
+                className="w-full px-3 py-2 text-sm font-mono"
+                style={{
+                  background: 'var(--bg-glass)',
+                  border: '1px solid var(--border-glass)',
+                  borderRadius: 'var(--radius-sm)',
+                  color: 'var(--text-primary)',
+                }}
+                required
+              />
+            </div>
+            {authError && <p className="text-sm" style={{ color: '#f87171' }}>{authError}</p>}
+            <button type="submit" className="btn-primary w-full justify-center" style={{ padding: '12px' }}>
+              Access Dashboard
+            </button>
+          </form>
+
+          <div className="mt-6 p-4 text-sm" style={{ background: 'var(--bg-glass)', border: '1px solid var(--border-glass)', borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)' }}>
+            <p className="font-medium mb-2" style={{ color: 'var(--text-primary)' }}>Don&apos;t have an API key?</p>
+            <ol className="list-decimal list-inside space-y-1 text-xs">
+              <li>Register a user account: <code style={{ background: 'var(--bg-glass-strong)', padding: '1px 4px', borderRadius: '4px' }}>POST /api/users</code></li>
+              <li>Create an API key: <code style={{ background: 'var(--bg-glass-strong)', padding: '1px 4px', borderRadius: '4px' }}>POST /api/apikeys</code></li>
+              <li>Come back here with your key.</li>
+            </ol>
+          </div>
         </div>
       </div>
     );
@@ -185,23 +196,22 @@ export default function DashboardPage() {
   const tierLimits = TIER_LIMITS[tier] || TIER_LIMITS.free;
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 animate-fade-in-up">
       <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Developer Dashboard</h1>
-        <span className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${
-          tier === 'enterprise' ? 'bg-gray-900 text-white' :
-          tier === 'pro' ? 'bg-blue-600 text-white' :
-          'bg-gray-100 text-gray-700'
-        }`}>
+        <h1 className="text-2xl font-bold gradient-text">Developer Dashboard</h1>
+        <span className="badge" style={{
+          background: tier === 'enterprise' ? 'rgba(168, 85, 247, 0.15)' : tier === 'pro' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(100, 116, 139, 0.15)',
+          color: tier === 'enterprise' ? '#c084fc' : tier === 'pro' ? '#60a5fa' : '#94a3b8',
+        }}>
           {tier} plan
         </span>
       </div>
 
       {message && (
-        <div className="mb-6 rounded-md bg-gray-50 border border-gray-200 p-4 text-sm text-gray-800">
+        <div role="status" aria-live="polite" className="mb-6 rounded-lg p-4 text-sm glass animate-fade-in" style={{ color: 'var(--text-primary)' }}>
           {message}
           {createdKey && (
-            <div className="mt-2 font-mono text-xs bg-white border border-gray-300 rounded p-2 break-all select-all">
+            <div className="mt-2 font-mono text-xs p-2 break-all select-all" style={{ background: 'var(--bg-glass-strong)', border: '1px solid var(--border-glass)', borderRadius: 'var(--radius-sm)' }}>
               {createdKey}
             </div>
           )}
@@ -210,24 +220,24 @@ export default function DashboardPage() {
 
       {/* Subscription info */}
       {subscription && (
-        <div className="grid gap-4 md:grid-cols-3 mb-8">
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <p className="text-sm text-gray-500 mb-1">Current Plan</p>
-            <p className="text-xl font-bold text-gray-900 capitalize">{subscription.tier}</p>
-            <p className="text-xs text-gray-400 mt-1 capitalize">{subscription.status}</p>
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mb-8">
+          <div className="stat-card">
+            <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Current Plan</p>
+            <p className="text-xl font-bold capitalize" style={{ color: 'var(--text-primary)' }}>{subscription.tier}</p>
+            <p className="text-xs mt-1 capitalize" style={{ color: 'var(--text-muted)' }}>{subscription.status}</p>
           </div>
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <p className="text-sm text-gray-500 mb-1">Period End</p>
-            <p className="text-sm font-medium text-gray-900">
+          <div className="stat-card">
+            <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>Period End</p>
+            <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
               {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
             </p>
             {subscription.cancelAtPeriodEnd && (
-              <p className="text-xs text-red-500 mt-1">Cancels at period end</p>
+              <p className="text-xs mt-1" style={{ color: '#f87171' }}>Cancels at period end</p>
             )}
           </div>
-          <div className="rounded-lg border border-gray-200 bg-white p-6">
-            <p className="text-sm text-gray-500 mb-1">API Keys</p>
-            <p className="text-xl font-bold text-gray-900">
+          <div className="stat-card">
+            <p className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>API Keys</p>
+            <p className="stat-value">
               {apiKeys.filter((k) => k.isActive).length} / {tierLimits.maxApiKeys}
             </p>
           </div>
@@ -235,8 +245,8 @@ export default function DashboardPage() {
       )}
 
       {/* Usage meters */}
-      <div className="rounded-lg border border-gray-200 bg-white p-6 mb-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Plan Limits</h2>
+      <div className="card p-6 mb-8">
+        <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Plan Limits</h2>
         <div className="space-y-4">
           <UsageMeter
             label="API calls / day"
@@ -250,7 +260,7 @@ export default function DashboardPage() {
           />
         </div>
         {tier === 'free' && (
-          <div className="mt-4 rounded-md bg-blue-50 border border-blue-200 p-3 text-sm text-blue-700">
+          <div className="mt-4 rounded-lg p-3 text-sm" style={{ background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)', color: '#60a5fa' }}>
             <span className="font-medium">Upgrade to Pro</span> for 100× more API calls, content generation, webhooks, and analytics.{' '}
             <Link href="/pricing" className="underline font-medium">View plans →</Link>
           </div>
@@ -258,9 +268,9 @@ export default function DashboardPage() {
       </div>
 
       {/* API Keys management */}
-      <div className="rounded-lg border border-gray-200 bg-white mb-8">
-        <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">API Keys</h2>
+      <div className="card mb-8" style={{ overflow: 'hidden' }}>
+        <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+          <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>API Keys</h2>
         </div>
 
         <div className="p-6">
@@ -270,41 +280,48 @@ export default function DashboardPage() {
               value={newKeyName}
               onChange={(e) => setNewKeyName(e.target.value)}
               placeholder="Key name (e.g. Production, My App)"
-              className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900"
+              className="flex-1 px-3 py-2 text-sm"
+              style={{
+                background: 'var(--bg-glass)',
+                border: '1px solid var(--border-glass)',
+                borderRadius: 'var(--radius-sm)',
+                color: 'var(--text-primary)',
+              }}
               maxLength={64}
             />
             <button
               type="submit"
               disabled={loading || !newKeyName.trim()}
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+              className="btn-primary disabled:opacity-50"
             >
               {loading ? 'Creating...' : 'Create Key'}
             </button>
           </form>
 
-          <div className="divide-y divide-gray-100">
+          <div>
             {apiKeys.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-6">No API keys yet. Create one above.</p>
+              <p className="text-sm text-center py-6" style={{ color: 'var(--text-muted)' }}>No API keys yet. Create one above.</p>
             ) : (
               apiKeys.map((key) => (
-                <div key={key.id} className="py-4 flex items-center justify-between">
+                <div key={key.id} className="py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900">{key.name}</p>
-                    <p className="text-xs text-gray-400 font-mono mt-0.5">{key.keyPrefix}••••</p>
+                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{key.name}</p>
+                    <p className="text-xs font-mono mt-0.5" style={{ color: 'var(--text-muted)' }}>{key.keyPrefix}••••</p>
                     <div className="flex gap-2 mt-1">
                       {key.scopes.map((s) => (
-                        <span key={s} className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">
+                        <span key={s} className="badge" style={{ background: 'var(--bg-glass)', color: 'var(--text-secondary)' }}>
                           {s}
                         </span>
                       ))}
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
                         {key.callCount.toLocaleString()} calls
                       </span>
                     </div>
                   </div>
                   <button
                     onClick={() => handleRevokeKey(key.id)}
-                    className="ml-4 text-xs text-red-600 hover:text-red-800"
+                    className="ml-4 text-xs hover:opacity-80"
+                    style={{ color: '#f87171' }}
                   >
                     Revoke
                   </button>
@@ -316,8 +333,8 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick API reference */}
-      <div className="rounded-lg border border-gray-200 bg-white p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick API Reference</h2>
+      <div className="card p-6">
+        <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Quick API Reference</h2>
         <div className="space-y-3 text-sm font-mono">
           {[
             { method: 'GET', path: '/api/v1/posts', desc: 'List published posts' },
@@ -326,15 +343,16 @@ export default function DashboardPage() {
             { method: 'GET', path: '/api/recommendations?slug=...', desc: 'Related post recommendations' },
             { method: 'GET', path: '/api/recommendations?view=trending', desc: 'Trending topics' },
           ].map(({ method, path, desc }) => (
-            <div key={path} className="flex items-start gap-3 rounded bg-gray-50 p-3">
-              <span className={`flex-shrink-0 rounded px-1.5 py-0.5 text-xs font-bold ${
-                method === 'GET' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-              }`}>
+            <div key={path} className="flex items-start gap-3 p-3" style={{ background: 'var(--bg-glass)', borderRadius: 'var(--radius-sm)' }}>
+              <span className="flex-shrink-0 badge" style={{
+                background: method === 'GET' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(59, 130, 246, 0.15)',
+                color: method === 'GET' ? '#34d399' : '#60a5fa',
+              }}>
                 {method}
               </span>
               <div>
-                <code className="text-gray-800">{path}</code>
-                <p className="text-gray-500 text-xs mt-0.5 font-sans">{desc}</p>
+                <code style={{ color: 'var(--text-primary)' }}>{path}</code>
+                <p className="text-xs mt-0.5 font-sans" style={{ color: 'var(--text-muted)' }}>{desc}</p>
               </div>
             </div>
           ))}

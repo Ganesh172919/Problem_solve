@@ -3,6 +3,7 @@ import { getPostBySlug, getAllPosts } from '@/db/posts';
 import { getPersonalizedRecommendations, getRecommendations, getTrendingTopics } from '@/agents/recommendationAgent';
 import { cache } from '@/lib/cache';
 import { APP_CONFIG } from '@/lib/config';
+import { logger } from '@/lib/logger';
 
 function csv(value: string | null): string[] {
   if (!value) return [];
@@ -87,7 +88,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ recommendations, postSlug: slug });
   } catch (error) {
-    console.error('Error in recommendations GET:', error);
+    logger.error('Error in recommendations GET', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

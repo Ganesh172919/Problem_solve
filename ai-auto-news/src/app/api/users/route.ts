@@ -5,6 +5,7 @@ import { createSubscription } from '@/db/subscriptions';
 import { verifyToken } from '@/lib/auth';
 import { validateEmail, validateUsername, validatePassword, ValidationError } from '@/lib/validation';
 import { trackAnalyticsEvent } from '@/db/analytics';
+import { logger } from '@/lib/logger';
 
 // POST /api/users — Register a new user
 export async function POST(request: NextRequest) {
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
     const { passwordHash: _ph, ...safeUser } = user;
     return NextResponse.json({ user: safeUser }, { status: 201 });
   } catch (error) {
-    console.error('Error in users POST:', error);
+    logger.error('Error in users POST', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -85,7 +86,7 @@ export async function GET(request: NextRequest) {
       totalPages: Math.ceil(result.total / limit),
     });
   } catch (error) {
-    console.error('Error in users GET:', error);
+    logger.error('Error in users GET', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

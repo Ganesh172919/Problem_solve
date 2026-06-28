@@ -1,5 +1,6 @@
 import { autonomousPublisher } from '@/agents/autonomousPublisher';
 import { APP_CONFIG } from '@/lib/config';
+import { logger } from '@/lib/logger';
 
 const INTERVAL_MS = APP_CONFIG.schedulerIntervalMs;
 
@@ -33,7 +34,7 @@ async function runCycle(): Promise<void> {
 
   // Lock mechanism: skip if already processing
   if (state.isProcessing) {
-    console.log('[Scheduler] Skipping cycle - previous cycle still running');
+    logger.info('[Scheduler] Skipping cycle - previous cycle still running');
     return;
   }
 
@@ -45,22 +46,22 @@ async function runCycle(): Promise<void> {
 
     if (result.success) {
       state.totalGenerated++;
-      console.log(`[Scheduler] Cycle complete. Total generated: ${state.totalGenerated}`);
+      logger.info(`[Scheduler] Cycle complete. Total generated: ${state.totalGenerated}`);
     } else {
-      console.log(`[Scheduler] Cycle skipped: ${result.message}`);
+      logger.info(`[Scheduler] Cycle skipped: ${result.message}`);
 
       // Retry once on failure
-      console.log('[Scheduler] Retrying once...');
+      logger.info('[Scheduler] Retrying once...');
       const retry = await autonomousPublisher();
       if (retry.success) {
         state.totalGenerated++;
-        console.log(`[Scheduler] Retry succeeded. Total generated: ${state.totalGenerated}`);
+        logger.info(`[Scheduler] Retry succeeded. Total generated: ${state.totalGenerated}`);
       } else {
-        console.log(`[Scheduler] Retry also failed: ${retry.message}`);
+        logger.info(`[Scheduler] Retry also failed: ${retry.message}`);
       }
     }
   } catch (error) {
-    console.error('[Scheduler] Unexpected error:', error);
+    logger.error('[Scheduler] Unexpected error', error instanceof Error ? error : undefined);
   } finally {
     state.isProcessing = false;
   }
@@ -70,11 +71,11 @@ export function startScheduler(): void {
   const state = getState();
 
   if (state.running && state.intervalId) {
-    console.log('[Scheduler] Already running');
+    logger.info('[Scheduler] Already running');
     return;
   }
 
-  console.log(`[Scheduler] Starting auto-publisher (interval: ${Math.round(INTERVAL_MS / 60000)} minutes)`);
+  logger.info(`[Scheduler] Starting auto-publisher (interval: ${Math.round(INTERVAL_MS / 60000)} minutes)`);
   state.running = true;
 
   // Run first cycle immediately
@@ -92,7 +93,7 @@ export function stopScheduler(): void {
     state.intervalId = null;
   }
   state.running = false;
-  console.log('[Scheduler] Stopped');
+  logger.info('[Scheduler] Stopped');
 }
 
 export function getSchedulerStatus() {

@@ -1,6 +1,8 @@
 import { ResearchResult } from '@/types';
 import { rateLimitedFetch, RateLimitError, RateLimitExhaustedError } from '@/lib/rateLimiter';
 import { getAiProvider, getGeminiApiKey } from '@/lib/aiProvider';
+import { logger } from '@/lib/logger';
+import { APP_CONFIG } from '@/lib/config';
 import { mockResearch } from './mockAi';
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
@@ -41,7 +43,7 @@ export async function researchAgent(
 
   if (provider === 'mock' || !apiKey) {
     if (provider === 'gemini' && !apiKey) {
-      console.warn('[ResearchAgent] AI_PROVIDER=gemini but GEMINI_API_KEY is missing. Falling back to mock mode.');
+      logger.warn('[ResearchAgent] AI_PROVIDER=gemini but GEMINI_API_KEY is missing. Falling back to mock mode.');
     }
     return mockResearch(recentTopics, requestedTopic);
   }
@@ -63,7 +65,7 @@ Return ONLY a valid JSON object with this exact structure (no markdown, no code 
 Make sure the content is factual, current, and insightful. Return ONLY the JSON object.`;
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000);
+    const timeout = setTimeout(() => controller.abort(), APP_CONFIG.agentTimeouts.research);
 
     const response = await rateLimitedFetch(
       `${GEMINI_API_URL}?key=${apiKey}`,
@@ -96,7 +98,7 @@ Make sure the content is factual, current, and insightful. Return ONLY the JSON 
     // Check if response was truncated due to token limit
     const finishReason = data.candidates?.[0]?.finishReason;
     if (finishReason === 'MAX_TOKENS') {
-      console.warn('[ResearchAgent] Response was truncated (MAX_TOKENS). Attempting to repair JSON...');
+      logger.warn('[ResearchAgent] Response was truncated (MAX_TOKENS). Attempting to repair JSON...');
     }
 
     const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
@@ -104,10 +106,10 @@ Make sure the content is factual, current, and insightful. Return ONLY the JSON 
     return parseResearchResponse(content, topic);
   } catch (error) {
     if (error instanceof RateLimitError || error instanceof RateLimitExhaustedError) {
-      console.warn(`[ResearchAgent] ${error.message}`);
+      logger.warn(`[ResearchAgent] ${error.message}`);
       throw error;
     }
-    console.error('Research agent error:', error);
+    logger.error('Research agent error', error instanceof Error ? error : undefined);
     throw error instanceof Error
       ? error
       : new Error('Research agent failed with an unknown error');
@@ -193,7 +195,7 @@ function parseResearchResponse(content: string, fallbackTopic: string): Research
   try {
     const repaired = repairTruncatedJson(cleaned);
     const parsed = JSON.parse(repaired);
-    console.warn('[ResearchAgent] Successfully repaired truncated JSON response');
+    logger.warn('[ResearchAgent] Successfully repaired truncated JSON response');
     return validateResearchResult(parsed);
   } catch {
     // continue to final fallback
@@ -205,7 +207,7 @@ function parseResearchResponse(content: string, fallbackTopic: string): Research
   const summaryMatch = cleaned.match(/"summary"\s*:\s*"([^"]+)"/);
 
   if (topicMatch || headlineMatch) {
-    console.warn('[ResearchAgent] Extracted partial data from malformed JSON response');
+    logger.warn('[ResearchAgent] Extracted partial data from malformed JSON response');
     return {
       topic: topicMatch?.[1] || fallbackTopic,
       headline: headlineMatch?.[1] || `Latest developments in ${fallbackTopic}`,
@@ -215,7 +217,7 @@ function parseResearchResponse(content: string, fallbackTopic: string): Research
     };
   }
 
-  console.error('Raw Gemini research response:', content.substring(0, 500));
+  logger.error('[ResearchAgent] Failed to parse response', undefined, { responsePreview: content.substring(0, 500) });
   throw new Error(`Failed to parse Gemini research response for topic: ${fallbackTopic}`);
 }
 

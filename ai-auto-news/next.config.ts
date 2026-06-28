@@ -21,6 +21,7 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
   serverExternalPackages: ['better-sqlite3'],
   turbopack: {
     root: process.cwd(),

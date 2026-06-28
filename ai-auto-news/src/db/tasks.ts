@@ -1,11 +1,12 @@
 import { v4 as uuidv4 } from 'uuid';
 import getDb from './index';
+import { safeJsonParse } from './safeParse';
 import { Task, TaskRow, TaskStatus } from '@/types/saas';
 
 function rowToTask(row: TaskRow): Task {
   return {
     ...row,
-    payload: JSON.parse(row.payload || '{}'),
+    payload: safeJsonParse<Record<string, unknown>>(row.payload, {}),
   };
 }
 

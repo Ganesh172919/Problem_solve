@@ -1,11 +1,12 @@
 import { v4 as uuidv4 } from 'uuid';
 import getDb from './index';
+import { safeJsonParse } from './safeParse';
 import { FeatureFlag, FeatureFlagRow, SubscriptionTier } from '@/types/saas';
 
 function rowToFlag(row: FeatureFlagRow): FeatureFlag {
   return {
     ...row,
-    enabledTiers: JSON.parse(row.enabledTiers || '["free","pro","enterprise"]'),
+    enabledTiers: safeJsonParse<SubscriptionTier[]>(row.enabledTiers, ['free', 'pro', 'enterprise']),
     isGlobal: row.isGlobal === 1,
   };
 }

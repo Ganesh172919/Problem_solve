@@ -6,6 +6,7 @@ import { trackUsageEvent } from '@/db/usage';
 import { metrics } from '@/lib/metrics';
 import { TIER_LIMITS } from '@/lib/config';
 import { cache } from '@/lib/cache';
+import { logger } from '@/lib/logger';
 import { validatePagination } from '@/lib/validation';
 
 export async function GET(request: NextRequest) {
@@ -88,7 +89,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     const durationMs = Date.now() - startMs;
     metrics.record('GET', endpoint, durationMs, true);
-    console.error('Error in v1/posts GET:', error);
+    logger.error('Error in v1/posts GET', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

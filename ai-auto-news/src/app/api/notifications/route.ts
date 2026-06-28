@@ -12,6 +12,7 @@ import {
   getNotificationStats,
   getTemplates,
 } from '@/lib/notificationEngine';
+import { logger } from '@/lib/logger';
 
 // GET /api/notifications — Get inbox, preferences, or stats
 export async function GET(request: NextRequest) {
@@ -53,7 +54,7 @@ export async function GET(request: NextRequest) {
       unreadCount: getUnreadCount(userId),
     });
   } catch (error) {
-    console.error('Notifications GET error:', error);
+    logger.error('Notifications GET error', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -136,7 +137,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ notification }, { status: 201 });
   } catch (error) {
-    console.error('Notifications POST error:', error);
+    logger.error('Notifications POST error', error instanceof Error ? error : undefined);
     return NextResponse.json({
       error: error instanceof Error ? error.message : 'Internal server error',
     }, { status: 500 });

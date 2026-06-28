@@ -4,6 +4,7 @@ import { getEventCountsByName, getDailyEventCounts, queryAnalyticsEvents } from 
 import { getSystemUsageSummary, getTopEndpoints } from '@/db/usage';
 import { getUserStats } from '@/db/users';
 import { getSubscriptionStats } from '@/db/subscriptions';
+import { logger } from '@/lib/logger';
 
 // GET /api/analytics — Dashboard analytics (admin only)
 export async function GET(request: NextRequest) {
@@ -55,7 +56,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ error: 'Invalid view parameter' }, { status: 400 });
   } catch (error) {
-    console.error('Error in analytics GET:', error);
+    logger.error('Error in analytics GET', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

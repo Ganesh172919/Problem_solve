@@ -10,6 +10,7 @@ import {
   getBudgetStatus,
   getCostEvents,
 } from '@/lib/costRevenueOptimizer';
+import { logger } from '@/lib/logger';
 
 // GET /api/costs — Cost analytics and optimization
 export async function GET(request: NextRequest) {
@@ -69,7 +70,7 @@ export async function GET(request: NextRequest) {
     const summary = getCostSummary(scopeType, scopeId, days);
     return NextResponse.json({ summary });
   } catch (error) {
-    console.error('Costs GET error:', error);
+    logger.error('Costs GET error', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
   } catch (error) {
-    console.error('Costs POST error:', error);
+    logger.error('Costs POST error', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -3,6 +3,7 @@ import { createWebhook, getWebhooksByUserId, deleteWebhook, updateWebhook } from
 import { authenticateApiKey } from '@/lib/apiKeyAuth';
 import { canUseWebhooks } from '@/lib/featureGate';
 import { validateUrl, validateWebhookEvents, ValidationError } from '@/lib/validation';
+import { logger } from '@/lib/logger';
 
 // GET /api/webhooks — List user's webhooks
 export async function GET(request: NextRequest) {
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ webhook }, { status: 201 });
   } catch (error) {
-    console.error('Error in webhooks POST:', error);
+    logger.error('Error in webhooks POST', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -154,7 +155,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error in webhooks PATCH:', error);
+    logger.error('Error in webhooks PATCH', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

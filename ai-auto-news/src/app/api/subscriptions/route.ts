@@ -4,6 +4,7 @@ import { updateUserTier, getUserById } from '@/db/users';
 import { authenticateApiKey } from '@/lib/apiKeyAuth';
 import { trackAnalyticsEvent } from '@/db/analytics';
 import { SubscriptionTier } from '@/types/saas';
+import { logger } from '@/lib/logger';
 
 const VALID_TIERS: SubscriptionTier[] = ['free', 'pro', 'enterprise'];
 
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ subscription: updatedSubscription, tier: updatedUser?.tier });
   } catch (error) {
-    console.error('Error in subscriptions POST:', error);
+    logger.error('Error in subscriptions POST', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -114,7 +115,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true, immediate });
   } catch (error) {
-    console.error('Error in subscriptions DELETE:', error);
+    logger.error('Error in subscriptions DELETE', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

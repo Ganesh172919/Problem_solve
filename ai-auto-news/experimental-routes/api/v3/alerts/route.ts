@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAlertCorrelator } from '../../../../lib/aiPoweredAlertCorrelator';
+import { serializeError } from '@/lib/errorSerializer';
 
 const correlator = getAlertCorrelator();
 
@@ -34,7 +35,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     if (action === 'insights') return NextResponse.json(correlator.listInsights(groupId));
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return NextResponse.json({ error: serializeError(err) }, { status: 500 });
   }
 }
 
@@ -77,6 +78,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return NextResponse.json({ error: serializeError(err) }, { status: 500 });
   }
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getTrafficShaper } from '../../../../lib/distributedTrafficShaper';
+import { serializeError } from '@/lib/errorSerializer';
 
 const shaper = getTrafficShaper();
 
@@ -37,7 +38,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     if (action === 'bandwidth') return NextResponse.json(shaper.computeBandwidthAllocations());
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return NextResponse.json({ error: serializeError(err) }, { status: 500 });
   }
 }
 
@@ -78,6 +79,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return NextResponse.json({ error: serializeError(err) }, { status: 500 });
   }
 }

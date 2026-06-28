@@ -7,6 +7,7 @@ import {
   deleteFeatureFlag,
 } from '@/db/featureFlags';
 import { SubscriptionTier } from '@/types/saas';
+import { logger } from '@/lib/logger';
 
 const VALID_TIERS: SubscriptionTier[] = ['free', 'pro', 'enterprise'];
 
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
     const flags = listFeatureFlags();
     return NextResponse.json({ flags, total: flags.length });
   } catch (error) {
-    console.error('Error in features GET:', error);
+    logger.error('Error in features GET', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
     const flag = createFeatureFlag({ name, description, enabledTiers, isGlobal, rolloutPercent });
     return NextResponse.json({ flag }, { status: 201 });
   } catch (error) {
-    console.error('Error in features POST:', error);
+    logger.error('Error in features POST', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -107,7 +108,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error in features PATCH:', error);
+    logger.error('Error in features PATCH', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -133,7 +134,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error in features DELETE:', error);
+    logger.error('Error in features DELETE', error instanceof Error ? error : undefined);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -62,6 +62,23 @@ export const APP_CONFIG = {
   webhookMaxRetries: 3,
   metricsWindowMs: 60_000,
   logLevel: (process.env.LOG_LEVEL as 'debug' | 'info' | 'warn' | 'error') || 'info',
+
+  // Agent configuration
+  agentTimeouts: {
+    research: parseInt(process.env.AGENT_TIMEOUT_RESEARCH || '30000', 10),
+    blog: parseInt(process.env.AGENT_TIMEOUT_BLOG || '60000', 10),
+    news: parseInt(process.env.AGENT_TIMEOUT_NEWS || '45000', 10),
+  },
+
+  // Content strategy: 'balanced' | 'blog-heavy' | 'news-heavy' | 'research-only'
+  contentStrategy: (process.env.CONTENT_STRATEGY || 'balanced') as
+    | 'balanced'
+    | 'blog-heavy'
+    | 'news-heavy'
+    | 'research-only',
+
+  // Quality gate threshold (0-100). Posts below this score are saved as drafts.
+  qualityGateThreshold: parseInt(process.env.QUALITY_GATE_THRESHOLD || '0', 10),
 } as const;
 
 export const FEATURE_DESCRIPTIONS: Record<string, string> = {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyCredentials, generateToken } from '@/lib/auth';
+import { verifyCredentials, generateToken, verifyToken } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,13 +19,25 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({ success: true });
     response.cookies.set('admin_token', token, {
       httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
       maxAge: 86400,
       path: '/',
     });
 
     return response;
+  } catch {
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const token = request.cookies.get('admin_token')?.value;
+    if (!token || !verifyToken(token)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDependencyGraph } from '../../../../lib/intelligentDependencyGraph';
+import { serializeError } from '@/lib/errorSerializer';
 import type { ServiceNode, DependencyEdge } from '../../../../lib/intelligentDependencyGraph';
 
 const graph = getDependencyGraph();
@@ -35,7 +36,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     }
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return NextResponse.json({ error: serializeError(err) }, { status: 500 });
   }
 }
 
@@ -83,6 +84,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
   } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+    return NextResponse.json({ error: serializeError(err) }, { status: 500 });
   }
 }

@@ -482,9 +482,39 @@ class WorkflowOrchestrationEngine {
 
   private evaluateCondition(condition: string, context: Record<string, any>): boolean {
     try {
-      // Simple condition evaluation (can be enhanced)
-      const func = new Function('context', `return ${condition}`);
-      return func(context);
+      // Safe expression evaluator — supports only simple comparisons
+      // against context properties. Rejects anything else to prevent code injection.
+      const match = condition.match(
+        /^context\.(\w+)\s*(===|!==|==|!=|>=|<=|>|<)\s*(.+)$/,
+      );
+      if (!match) {
+        logger.warn('Unsupported condition expression (rejected for safety)', { condition });
+        return false;
+      }
+
+      const [, prop, op, rawVal] = match;
+      const left = context[prop];
+
+      // Parse the right-hand side as JSON (handles strings, numbers, booleans, null)
+      let right: unknown;
+      try {
+        right = JSON.parse(rawVal.trim());
+      } catch {
+        // If it's not valid JSON, treat as a raw string (strip surrounding quotes)
+        right = rawVal.trim().replace(/^['"]|['"]$/g, '');
+      }
+
+      switch (op) {
+        case '===': return left === right;
+        case '!==': return left !== right;
+        case '==': return left == right;
+        case '!=': return left != right;
+        case '>=': return left >= right;
+        case '<=': return left <= right;
+        case '>': return left > right;
+        case '<': return left < right;
+        default: return false;
+      }
     } catch (error) {
       logger.error('Condition evaluation failed', error instanceof Error ? error : undefined);
       return false;

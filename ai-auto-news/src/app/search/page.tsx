@@ -194,6 +194,14 @@ export default function SearchPage() {
       )}
 
       {/* Results */}
+      <div aria-live="polite" aria-atomic="true">
+        {result && result.posts.length > 0 && (
+          <span className="sr-only">{result.total} results found</span>
+        )}
+        {result && result.posts.length === 0 && query.trim() && (
+          <span className="sr-only">No results found</span>
+        )}
+      </div>
       {result && (
         <div>
           <p className="text-sm mb-4" style={{ color: 'var(--text-muted)' }}>
