@@ -17,48 +17,60 @@ export const CATEGORY_META: Record<string, CategoryMeta> = {
   ai: {
     label: 'AI',
     icon: 'AI',
-    color: '#c084fc',
+    color: '#2563EB',
     description: 'Artificial intelligence research, tools, policy, and applied systems.',
   },
   tech: {
     label: 'Tech',
     icon: 'TECH',
-    color: '#22d3ee',
+    color: '#059669',
     description: 'Engineering, platforms, devices, software, and product shifts.',
+  },
+  startups: {
+    label: 'Startups',
+    icon: 'START',
+    color: '#D97706',
+    description: 'Funding rounds, founders, exits, and startup ecosystem news.',
+  },
+  research: {
+    label: 'Research',
+    icon: 'PAPER',
+    color: '#7C3AED',
+    description: 'AI research papers, breakthroughs, and technical explainers.',
+  },
+  products: {
+    label: 'Products',
+    icon: 'PROD',
+    color: '#DC2626',
+    description: 'AI tools, developer products, and platform launches.',
   },
   business: {
     label: 'Business',
     icon: 'BIZ',
-    color: '#fbbf24',
-    description: 'Markets, startups, strategy, funding, and company moves.',
-  },
-  sports: {
-    label: 'Sports',
-    icon: 'SPORT',
-    color: '#34d399',
-    description: 'Sports innovation, media, analytics, and performance technology.',
+    color: '#D97706',
+    description: 'Markets, strategy, funding, and company moves.',
   },
   news: {
     label: 'News',
     icon: 'NEWS',
-    color: '#f87171',
+    color: '#DC2626',
     description: 'Fresh updates and fast-moving developments across the feed.',
   },
   blog: {
     label: 'Blog',
     icon: 'BLOG',
-    color: '#60a5fa',
+    color: '#2563EB',
     description: 'Longer reads, explainers, and analysis from the automated newsroom.',
   },
   general: {
     label: 'General',
     icon: 'INFO',
-    color: '#94a3b8',
+    color: '#6b7280',
     description: 'Useful updates that do not fit a narrower section yet.',
   },
 };
 
-export const FEATURED_CATEGORY_ORDER = ['ai', 'tech', 'business', 'sports', 'news', 'blog'];
+export const FEATURED_CATEGORY_ORDER = ['ai', 'tech', 'startups', 'research', 'products', 'business', 'news', 'blog'];
 
 export function getCategoryMeta(category: string): CategoryMeta {
   const key = category.toLowerCase();

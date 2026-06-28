@@ -4,71 +4,22 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer
-      style={{
-        borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-        background: 'rgba(255, 255, 255, 0.02)',
-      }}
-    >
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div>
-            <Link href="/" className="flex items-center gap-2 mb-3">
-              <span className="brand-mark" aria-hidden="true">AI</span>
-              <span className="text-lg font-bold gradient-text">AI Auto News</span>
-            </Link>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', lineHeight: '1.6' }}>
-              Personalized AI-powered news with broad topic coverage, visible sources, and a local reader profile that stays in your browser.
-            </p>
-          </div>
-
-          <div>
-            <h3 style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.875rem', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Sections
-            </h3>
-            <div className="space-y-2">
-              {[
-                { href: '/', label: 'Home' },
-                { href: '/category/ai', label: 'AI' },
-                { href: '/category/tech', label: 'Tech' },
-                { href: '/category/business', label: 'Business' },
-                { href: '/search', label: 'Search' },
-              ].map((link) => (
-                <Link key={link.href} href={link.href} className="block text-sm transition-colors" style={{ color: 'var(--text-muted)' }}>
-                  {link.label}
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h3 style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.875rem', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Trust Signals
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {['Source visibility', 'AI disclosure', 'Local preferences', 'RSS feed', 'Search'].map((item) => (
-                <span key={item} className="badge" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', fontSize: '0.7rem' }}>
-                  {item}
-                </span>
-              ))}
-            </div>
-          </div>
+    <footer className="site-footer">
+      <div className="footer-inner">
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '1.5rem', marginBottom: '1rem' }}>
+          <Link href="/">Home</Link>
+          <Link href="/category/ai">AI</Link>
+          <Link href="/category/tech">Tech</Link>
+          <Link href="/category/startups">Startups</Link>
+          <Link href="/category/research">Research</Link>
+          <Link href="/search">Search</Link>
+          <Link href="/admin">Admin</Link>
+          <Link href="/rss.xml">RSS</Link>
         </div>
-
-        <div
-          className="mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4"
-          style={{ borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}
-        >
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-            &copy; {currentYear} AI Auto News. Powered by AI.
-          </p>
-          <div className="flex items-center gap-2">
-            <span className="pulse-dot" />
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-              Auto-publishing enabled
-            </span>
-          </div>
-        </div>
+        <p>
+          &copy; {currentYear} TechPulse AI — Autonomous AI Journalism.
+          All content is AI-generated via Gemini.
+        </p>
       </div>
     </footer>
   );

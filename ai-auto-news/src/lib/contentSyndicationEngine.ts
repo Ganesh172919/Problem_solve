@@ -197,49 +197,10 @@ class ContentSyndicationEngine {
         rateLimit: { requestsPerHour: 100, requestsPerDay: 500 },
         revenueShare: p.revShare,
         contractStart: new Date('2024-01-01'),
-        stats: { totalSyndicated: Math.floor(100 + Math.random() * 900), totalRevenue: parseFloat((500 + Math.random() * 5000).toFixed(2)), successRate: 95 + Math.random() * 4 },
+        stats: { totalSyndicated: 0, totalRevenue: 0, successRate: 100 },
       });
     }
-
-    // Seed content
-    const topics = ['AI Breakthroughs', 'Climate Tech', 'Web3 Update', 'Startup Funding', 'Quantum Computing'];
-    for (let i = 0; i < 20; i++) {
-      const id = `content_${i.toString().padStart(3, '0')}`;
-      const wordCount = Math.floor(400 + Math.random() * 1200);
-      this.content.set(id, {
-        id,
-        title: `${topics[i % topics.length]}: Article ${i + 1}`,
-        body: `Full article body for article ${i + 1}. `.repeat(Math.floor(wordCount / 7)),
-        summary: `Summary for article ${i + 1} covering important developments in the field.`,
-        author: `Author ${(i % 5) + 1}`,
-        publishedAt: new Date(Date.now() - i * 86_400_000),
-        categories: ['technology'],
-        tags: ['tech', 'news', topics[i % topics.length].toLowerCase().replace(/ /g, '-')],
-        canonicalUrl: `https://example.com/articles/${id}`,
-        wordCount,
-        readTimeMinutes: Math.ceil(wordCount / 200),
-      });
-    }
-
-    // Seed licenses
-    for (const [contentId] of this.content) {
-      for (const [partnerId] of this.partners) {
-        const licId = `lic_${contentId}_${partnerId}`;
-        this.licenses.set(licId, {
-          id: licId,
-          contentId,
-          partnerId,
-          licenseType: 'non-exclusive',
-          territory: ['US', 'CA', 'GB'],
-          startDate: new Date('2024-01-01'),
-          baseRoyalty: 0.5,
-          minimumGuarantee: 5,
-          maximumCap: 500,
-          usageRestrictions: ['no-modification', 'attribution-required'],
-          active: true,
-        });
-      }
-    }
+    // Content and licenses are populated from real published articles
   }
 
   // ─── Encryption (simple obfuscation for demo) ─────────────────────────────

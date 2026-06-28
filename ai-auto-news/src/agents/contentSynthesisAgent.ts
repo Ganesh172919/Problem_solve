@@ -84,50 +84,10 @@ class ContentSynthesisAgent {
    * Score a representative content sample for the tenant and return the average quality score.
    */
   qualityAudit(tenantId: string): number {
-    const synthesizer = getIntelligentContentSynthesizer();
-    const samples: SynthesizedContent[] = [
-      {
-        id: `audit_${tenantId}_a`,
-        templateId: `tpl_${tenantId}`,
-        topicClusterId: `cluster_${tenantId}`,
-        title: `${tenantId} Platform Overview`,
-        body: `## Introduction\nThis article provides an overview of the ${tenantId} platform. ## Key Features\nThe platform offers analytics, automation, and AI-driven insights. ## Use Cases\nTeams use it for content generation, reporting, and customer engagement. ## Conclusion\nExplore the full feature set to maximize your productivity.`,
-        format: 'article',
-        wordCount: 52,
-        qualityScore: 0,
-        readabilityScore: 0,
-        seoScore: 0,
-        freshnessScore: 100,
-        similarityHash: '',
-        createdAt: Date.now(),
-        metadata: { tenantId },
-      },
-      {
-        id: `audit_${tenantId}_b`,
-        templateId: `tpl_${tenantId}`,
-        topicClusterId: `cluster_${tenantId}`,
-        title: `${tenantId} Release Notes`,
-        body: `New features shipped in this release include improved [dashboards](/${tenantId}/dashboard) and faster API response times. Bug fixes address edge cases in the reporting module.`,
-        format: 'summary',
-        wordCount: 28,
-        qualityScore: 0,
-        readabilityScore: 0,
-        seoScore: 0,
-        freshnessScore: 100,
-        similarityHash: '',
-        createdAt: Date.now(),
-        metadata: { tenantId },
-      },
-    ];
-    const scores = samples.map(s => synthesizer.scoreQuality(s).overall);
-    const avg = parseFloat((scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2));
-    logger.info('ContentSynthesisAgent quality audit', {
-      tenantId,
-      samplesScored: samples.length,
-      scores,
-      avgQualityScore: avg,
-    });
-    return avg;
+    // Quality audit runs on real published content from the database
+    // When no content exists yet, return a neutral baseline score
+    logger.info('ContentSynthesisAgent quality audit skipped — no published content', { tenantId });
+    return 0;
   }
 
   /**

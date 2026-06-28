@@ -183,36 +183,8 @@ class AIPoweredSEO {
   };
 
   constructor() {
-    this.seedContentIndex();
+    // Content index is populated dynamically from real articles in the database
     logger.info('AIPoweredSEO initialized');
-  }
-
-  private seedContentIndex(): void {
-    const articles: ContentDocument[] = [
-      {
-        id: 'art_001', url: '/articles/ai-news-automation',
-        title: 'How AI is Transforming News Automation in 2025',
-        description: 'Discover the latest AI-powered tools transforming how newsrooms automate content creation and distribution.',
-        body: 'Artificial intelligence is rapidly changing the landscape of news media. From automated writing to intelligent content distribution, AI tools are enabling newsrooms to publish faster, reach broader audiences, and personalize content at scale. This comprehensive guide explores the most impactful AI applications in modern journalism, including natural language generation, real-time fact-checking, and predictive analytics for editorial decisions.',
-        headings: ['AI in Modern Journalism', 'Automated Writing Tools', 'Content Distribution', 'The Future of AI News'],
-        tags: ['ai', 'news', 'automation', 'journalism', 'technology'],
-        publishedAt: new Date('2025-01-15'),
-        author: 'Jane Smith',
-        category: 'Technology',
-      },
-      {
-        id: 'art_002', url: '/articles/seo-best-practices',
-        title: 'SEO Best Practices for Digital Publishers',
-        description: 'A complete guide to search engine optimization for digital news publishers, including technical SEO and content strategy.',
-        body: 'Search engine optimization remains critical for digital publishers competing for visibility. Technical SEO foundations including proper schema markup, canonical URLs, and Core Web Vitals directly impact search rankings. Publishers must balance content quality, keyword optimization, and user experience to achieve sustainable organic growth.',
-        headings: ['Technical SEO Foundations', 'Content Optimization', 'Core Web Vitals', 'Schema Markup'],
-        tags: ['seo', 'digital publishing', 'search', 'optimization'],
-        publishedAt: new Date('2025-01-10'),
-        author: 'Bob Chen',
-        category: 'SEO',
-      },
-    ];
-    for (const doc of articles) this.contentIndex.set(doc.id, doc);
   }
 
   // ─── Content Analysis ─────────────────────────────────────────────────────

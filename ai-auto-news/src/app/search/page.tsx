@@ -66,14 +66,16 @@ function highlightQuery(text: string, query: string): string {
 
 function getCategoryBadgeClass(category: string): string {
   const map: Record<string, string> = {
-    blog: 'badge-blog',
-    news: 'badge-news',
-    tech: 'badge-tech',
-    business: 'badge-business',
-    sports: 'badge-sports',
-    ai: 'badge-ai',
+    ai: 'category-badge-ai',
+    tech: 'category-badge-tech',
+    startups: 'category-badge-startups',
+    research: 'category-badge-research',
+    products: 'category-badge-products',
+    blog: 'category-badge-blog',
+    news: 'category-badge-news',
+    business: 'category-badge-business',
   };
-  return map[category] || 'badge-blog';
+  return map[category] || 'category-badge-general';
 }
 
 export default function SearchPage() {
@@ -218,7 +220,7 @@ export default function SearchPage() {
                 style={{ animationDelay: `${i * 0.05}s`, opacity: 0, animationFillMode: 'forwards' }}
               >
                 <div className="flex items-center gap-2 text-xs mb-2">
-                  <span className={`badge ${getCategoryBadgeClass(post.category)}`} style={{ fontSize: '0.7rem' }}>
+                  <span className={`category-badge ${getCategoryBadgeClass(post.category)}`} style={{ fontSize: '0.7rem' }}>
                     {post.category}
                   </span>
                   <span style={{ color: 'var(--text-muted)' }}>

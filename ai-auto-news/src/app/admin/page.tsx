@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { getPostQualityScore } from '@/lib/postPresentation';
 
 interface PostItem {
   id: string;
@@ -30,6 +29,16 @@ interface Stats {
   };
 }
 
+interface AgentLog {
+  id: number;
+  run_id: string;
+  agent_name: string;
+  level: string;
+  message: string;
+  metadata: string | null;
+  created_at: string;
+}
+
 export default function AdminPage() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -38,18 +47,14 @@ export default function AdminPage() {
   const [loginError, setLoginError] = useState('');
   const [stats, setStats] = useState<Stats | null>(null);
   const [posts, setPosts] = useState<PostItem[]>([]);
+  const [logs, setLogs] = useState<AgentLog[]>([]);
   const [generating, setGenerating] = useState(false);
   const [message, setMessage] = useState('');
 
-  // Verify existing JWT cookie on mount
   useEffect(() => {
     fetch('/api/auth')
-      .then((res) => {
-        if (res.ok) setLoggedIn(true);
-      })
-      .catch(() => {
-        // Cookie invalid or expired — stay on login
-      })
+      .then((res) => { if (res.ok) setLoggedIn(true); })
+      .catch(() => {})
       .finally(() => setCheckingAuth(false));
   }, []);
 
@@ -60,81 +65,57 @@ export default function AdminPage() {
         fetch('/api/posts?limit=50'),
       ]);
 
-      if (statsRes.status === 401) {
-        setLoggedIn(false);
-        return;
-      }
-      if (statsRes.ok) {
-        setStats(await statsRes.json());
-      }
+      if (statsRes.status === 401) { setLoggedIn(false); return; }
+      if (statsRes.ok) setStats(await statsRes.json());
       if (postsRes.ok) {
         const data = await postsRes.json();
         setPosts(data.posts || []);
       }
-    } catch {
-      // Non-fatal — will retry on next interval
-    }
+
+      // Fetch agent logs
+      try {
+        const logsRes = await fetch('/api/admin/logs?limit=50');
+        if (logsRes.ok) {
+          const logsData = await logsRes.json();
+          setLogs(logsData.logs || []);
+        }
+      } catch { /* non-fatal */ }
+    } catch { /* retry on next interval */ }
   }, []);
 
   useEffect(() => {
     if (!loggedIn) return;
-
     fetchData();
-
-    const interval = setInterval(fetchData, 30000);
-
-    // Refresh immediately when tab becomes visible again
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') fetchData();
-    };
+    const interval = setInterval(fetchData, 15000);
+    const handleVisibility = () => { if (document.visibilityState === 'visible') fetchData(); };
     document.addEventListener('visibilitychange', handleVisibility);
-
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', handleVisibility);
-    };
+    return () => { clearInterval(interval); document.removeEventListener('visibilitychange', handleVisibility); };
   }, [loggedIn, fetchData]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
-
     try {
       const res = await fetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
-
-      if (res.ok) {
-        setLoggedIn(true);
-      } else {
-        setLoginError('Invalid credentials');
-      }
-    } catch {
-      setLoginError('Login failed');
-    }
+      if (res.ok) setLoggedIn(true);
+      else setLoginError('Invalid credentials');
+    } catch { setLoginError('Login failed'); }
   };
 
   const handleGenerate = async () => {
     setGenerating(true);
     setMessage('');
-
     try {
       const res = await fetch('/api/generate', { method: 'POST' });
       const data = await res.json();
-
-      if (data.success) {
-        setMessage(`✅ ${data.message}`);
-        fetchData();
-      } else {
-        setMessage(`❌ ${data.message || 'Generation failed'}`);
-      }
-    } catch {
-      setMessage('❌ Failed to generate content');
-    } finally {
-      setGenerating(false);
-    }
+      setMessage(data.success ? `✅ ${data.message}` : `❌ ${data.message || 'Generation failed'}`);
+      fetchData();
+    } catch { setMessage('❌ Failed to generate content'); }
+    finally { setGenerating(false); }
   };
 
   const handleToggleScheduler = async () => {
@@ -143,165 +124,90 @@ export default function AdminPage() {
       const data = await res.json();
       setMessage(data.running ? '▶️ Scheduler started' : '⏸ Scheduler paused');
       fetchData();
-    } catch {
-      setMessage('❌ Failed to toggle scheduler');
-    }
+    } catch { setMessage('❌ Failed to toggle scheduler'); }
   };
 
   const handleDelete = async (slug: string) => {
-    if (!confirm('Are you sure you want to delete this post?')) return;
-
+    if (!confirm('Delete this post?')) return;
     try {
       const res = await fetch(`/api/posts/${slug}`, { method: 'DELETE' });
-      if (res.ok) {
-        setMessage('🗑️ Post deleted');
-        fetchData();
-      } else {
-        setMessage('❌ Failed to delete post');
-      }
-    } catch {
-      setMessage('❌ Failed to delete post');
-    }
+      if (res.ok) { setMessage('🗑️ Post deleted'); fetchData(); }
+      else setMessage('❌ Failed to delete');
+    } catch { setMessage('❌ Failed to delete'); }
   };
 
-  // ---- Auth Check Loading ----
   if (checkingAuth) {
     return (
-      <div className="mx-auto max-w-md px-4 py-20 text-center">
-        <div className="animate-pulse space-y-4">
-          <div className="h-12 w-12 rounded-full mx-auto" style={{ background: 'var(--bg-glass)' }} />
-          <div className="h-4 rounded w-32 mx-auto" style={{ background: 'var(--bg-glass)' }} />
-        </div>
+      <div style={{ maxWidth: '400px', margin: '4rem auto', padding: '0 1rem', textAlign: 'center' }}>
+        <p style={{ color: 'var(--color-text-muted)' }}>Checking authentication...</p>
       </div>
     );
   }
 
-  // ---- Login Screen ----
   if (!loggedIn) {
     return (
-      <div className="mx-auto max-w-md px-4 py-20 animate-fade-in-up">
-        <div
-          className="glass-strong p-8"
-          style={{ borderRadius: 'var(--radius-xl)' }}
-        >
-          <div className="text-center mb-6">
-            <div className="text-4xl mb-3">🔐</div>
-            <h1 className="text-2xl font-bold gradient-text mb-1">Admin Login</h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-              Authenticate to manage your platform
-            </p>
+      <div style={{ maxWidth: '400px', margin: '4rem auto', padding: '0 1rem' }}>
+        <div className="admin-card">
+          <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🔐</div>
+            <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.5rem', marginBottom: '0.25rem' }}>Admin Login</h1>
+            <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Manage your publishing platform</p>
           </div>
-
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div>
-              <label htmlFor="admin-username" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-                Username
-              </label>
-              <input
-                id="admin-username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className="search-input"
-                style={{ paddingLeft: '16px', fontSize: '0.9rem' }}
-                required
-              />
+              <label htmlFor="admin-username" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.375rem', color: 'var(--color-text-secondary)' }}>Username</label>
+              <input id="admin-username" type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="search-input" required />
             </div>
             <div>
-              <label htmlFor="admin-password" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-                Password
-              </label>
-              <input
-                id="admin-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="search-input"
-                style={{ paddingLeft: '16px', fontSize: '0.9rem' }}
-                required
-              />
+              <label htmlFor="admin-password" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 500, marginBottom: '0.375rem', color: 'var(--color-text-secondary)' }}>Password</label>
+              <input id="admin-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="search-input" required />
             </div>
-
-            {loginError && (
-              <p className="text-sm" style={{ color: '#f87171' }}>{loginError}</p>
-            )}
-
-            <button type="submit" className="btn-primary w-full justify-center" style={{ padding: '12px' }}>
-              Sign In
-            </button>
+            {loginError && <p style={{ color: '#DC2626', fontSize: '0.85rem' }}>{loginError}</p>}
+            <button type="submit" className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>Sign In</button>
           </form>
-
-          <p className="mt-4 text-center" style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-            Set credentials via ADMIN_USERNAME and ADMIN_PASSWORD in .env.local
-          </p>
         </div>
       </div>
     );
   }
 
-  // ---- Dashboard ----
+  // ── Dashboard ─────────────────────────────────────────────────────────────
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="flex items-center justify-between mb-8 animate-fade-in-up">
+    <div style={{ maxWidth: 'var(--max-width)', margin: '0 auto', padding: '2rem 1rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
         <div>
-          <h1 className="text-3xl font-bold gradient-text">Admin Dashboard</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '4px' }}>
-            Manage your AI-powered publishing platform
-          </p>
+          <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.75rem', fontWeight: 700 }}>Admin Dashboard</h1>
+          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>Manage your autonomous publishing platform</p>
         </div>
-        <button
-          onClick={() => setLoggedIn(false)}
-          className="btn-ghost"
-          style={{ fontSize: '0.8rem' }}
-        >
-          Logout
-        </button>
+        <button onClick={() => setLoggedIn(false)} className="btn-ghost" style={{ fontSize: '0.8rem' }}>Logout</button>
       </div>
 
       {message && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="mb-6 rounded-lg p-4 text-sm glass animate-fade-in"
-          style={{ color: 'var(--text-primary)' }}
-        >
+        <div role="status" aria-live="polite" className="admin-card" style={{ marginBottom: '1.5rem', fontSize: '0.875rem' }}>
           {message}
         </div>
       )}
 
-      {/* Stats cards */}
+      {/* Stats */}
       {stats && (
-        <div className="grid gap-4 md:grid-cols-4 mb-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
           <div className="stat-card">
             <div className="stat-value">{stats.total}</div>
-            <div className="stat-label">Total Posts</div>
+            <div className="stat-label">Total Articles</div>
           </div>
           <div className="stat-card">
             <div className="stat-value">{stats.autoCount}</div>
             <div className="stat-label">AI Generated</div>
           </div>
           <div className="stat-card">
-            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-              {stats.lastGeneration
-                ? new Date(stats.lastGeneration).toLocaleString()
-                : 'Never'}
+            <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>
+              {stats.lastGeneration ? new Date(stats.lastGeneration).toLocaleString() : 'Never'}
             </div>
             <div className="stat-label">Last Generation</div>
           </div>
           <div className="stat-card">
-            <div className="flex items-center gap-2">
-              <span
-                className="pulse-dot"
-                style={{
-                  background: stats.scheduler.running ? '#10b981' : '#ef4444',
-                  boxShadow: stats.scheduler.running ? '0 0 8px rgba(16,185,129,0.5)' : '0 0 8px rgba(239,68,68,0.5)',
-                }}
-              />
-              <span style={{
-                fontSize: '0.9rem',
-                fontWeight: 600,
-                color: stats.scheduler.running ? '#34d399' : '#f87171',
-              }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}>
+              <span className="pulse-dot" style={{ background: stats.scheduler.running ? '#059669' : '#DC2626' }} />
+              <span style={{ fontSize: '0.9rem', fontWeight: 600, color: stats.scheduler.running ? '#059669' : '#DC2626' }}>
                 {stats.scheduler.running ? 'Running' : 'Paused'}
               </span>
             </div>
@@ -311,109 +217,109 @@ export default function AdminPage() {
       )}
 
       {/* Actions */}
-      <div className="flex flex-wrap gap-3 mb-8 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-        <button
-          onClick={handleGenerate}
-          disabled={generating}
-          className="btn-primary disabled:opacity-50"
-        >
-          {generating ? (
-            <>
-              <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              Generating...
-            </>
-          ) : (
-            <>✨ Generate Now</>
-          )}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '2rem' }}>
+        <button onClick={handleGenerate} disabled={generating} className="btn-primary" style={{ opacity: generating ? 0.6 : 1 }}>
+          {generating ? '⏳ Generating...' : '✨ Generate Now'}
         </button>
         <button onClick={handleToggleScheduler} className="btn-ghost">
-          {stats?.scheduler.running ? '⏸ Pause Automation' : '▶️ Start Automation'}
+          {stats?.scheduler.running ? '⏸ Pause' : '▶️ Start'} Automation
         </button>
-        <Link href="/api/export?format=json" className="btn-ghost" target="_blank">
-          📥 Export JSON
-        </Link>
-        <Link href="/api/export?format=txt" className="btn-ghost" target="_blank">
-          📄 Export TXT
-        </Link>
       </div>
 
-      {/* Posts list */}
-      <div className="glass animate-fade-in-up" style={{ borderRadius: 'var(--radius-lg)', animationDelay: '0.3s' }}>
-        <div
-          className="px-6 py-4 flex items-center justify-between"
-          style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
-        >
-          <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
-            All Posts ({posts.length})
-          </h2>
-        </div>
-        <div>
-          {posts.length === 0 ? (
-            <div className="px-6 py-8 text-center" style={{ color: 'var(--text-muted)' }}>
-              No posts yet. Hit &quot;Generate Now&quot; to create one!
-            </div>
-          ) : (
-            posts.map((post, i) => (
+      {/* Agent Logs */}
+      <div className="admin-card" style={{ marginBottom: '2rem' }}>
+        <h2 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.125rem', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '2px solid var(--color-text-primary)' }}>
+          Agent Logs (Latest)
+        </h2>
+        {logs.length === 0 ? (
+          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', padding: '1rem 0' }}>
+            No agent logs yet. Run a generation cycle to see logs here.
+          </p>
+        ) : (
+          <div style={{ maxHeight: '400px', overflowY: 'auto', fontFamily: 'monospace', fontSize: '0.75rem' }}>
+            {logs.map((log) => (
               <div
-                key={post.id}
-                className="flex items-center justify-between px-6 py-4 transition-colors"
+                key={log.id}
                 style={{
-                  borderBottom: i < posts.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                  padding: '0.375rem 0.5rem',
+                  borderBottom: '1px solid var(--color-border)',
+                  display: 'flex',
+                  gap: '0.75rem',
+                  alignItems: 'flex-start',
                 }}
               >
-                <div className="min-w-0 flex-1">
-                  <Link
-                    href={`/post/${post.slug}`}
-                    className="text-sm font-medium truncate block transition-colors"
-                    style={{ color: 'var(--text-primary)' }}
-                  >
-                    {post.title}
-                  </Link>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={`badge ${post.category === 'blog' ? 'badge-blog' : 'badge-news'}`} style={{ fontSize: '0.65rem', padding: '2px 8px' }}>
-                      {post.category}
-                    </span>
-                    {post.autoGenerated && (
-                      <span className="badge badge-auto" style={{ fontSize: '0.65rem', padding: '2px 8px' }}>
-                        🤖 Auto
-                      </span>
-                    )}
-                    <span
-                      className="badge"
-                      style={{
-                        fontSize: '0.65rem',
-                        padding: '2px 8px',
-                        background: getPostQualityScore(post) >= 75 ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)',
-                        color: getPostQualityScore(post) >= 75 ? '#34d399' : '#fbbf24',
-                      }}
-                    >
-                      Quality {getPostQualityScore(post)}
-                    </span>
-                    <span
-                      className={post.sourceReferences.length > 0 ? 'badge badge-source' : 'badge'}
-                      style={{ fontSize: '0.65rem', padding: '2px 8px' }}
-                    >
-                      {post.sourceReferences.length > 0 ? `${post.sourceReferences.length} sources` : 'No sources'}
-                    </span>
-                    <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                      {new Date(post.createdAt).toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleDelete(post.slug)}
-                  className="ml-4 text-sm transition-colors"
-                  style={{ color: '#f87171' }}
-                >
-                  Delete
-                </button>
+                <span style={{ color: 'var(--color-text-muted)', whiteSpace: 'nowrap', minWidth: '70px' }}>
+                  {new Date(log.created_at).toLocaleTimeString()}
+                </span>
+                <span style={{
+                  padding: '1px 6px',
+                  borderRadius: '3px',
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  minWidth: '40px',
+                  textAlign: 'center',
+                  background: log.level === 'ERROR' ? 'rgba(220,38,38,0.1)' : log.level === 'WARN' ? 'rgba(217,119,6,0.1)' : 'rgba(5,150,105,0.1)',
+                  color: log.level === 'ERROR' ? '#DC2626' : log.level === 'WARN' ? '#D97706' : '#059669',
+                }}>
+                  {log.level}
+                </span>
+                <span style={{ padding: '1px 6px', background: 'var(--color-bg-secondary)', borderRadius: '3px', fontSize: '0.65rem', minWidth: '80px', textAlign: 'center' }}>
+                  {log.agent_name}
+                </span>
+                <span style={{ flex: 1, color: 'var(--color-text-primary)', wordBreak: 'break-word' }}>
+                  {log.message}
+                </span>
               </div>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Posts */}
+      <div className="admin-card">
+        <h2 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.125rem', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: '2px solid var(--color-text-primary)' }}>
+          All Posts ({posts.length})
+        </h2>
+        {posts.length === 0 ? (
+          <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', padding: '1rem 0', textAlign: 'center' }}>
+            No posts yet. Hit &quot;Generate Now&quot; to create one!
+          </p>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Category</th>
+                  <th>Published</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {posts.map((post) => (
+                  <tr key={post.id}>
+                    <td>
+                      <Link href={`/post/${post.slug}`} style={{ color: 'var(--color-text-primary)', textDecoration: 'none', fontWeight: 500 }}>
+                        {post.title.length > 60 ? post.title.slice(0, 60) + '…' : post.title}
+                      </Link>
+                    </td>
+                    <td>
+                      <span className={`category-badge category-badge-${post.category}`}>{post.category}</span>
+                    </td>
+                    <td style={{ color: 'var(--color-text-muted)', fontSize: '0.8rem' }}>
+                      {new Date(post.createdAt).toLocaleDateString()}
+                    </td>
+                    <td>
+                      <button onClick={() => handleDelete(post.slug)} style={{ color: '#DC2626', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}>
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

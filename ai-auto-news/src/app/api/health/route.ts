@@ -1,46 +1,35 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// /api/health — system health check endpoint.
+// Returns Gemini config status, DB connectivity, and scheduler state.
+// ─────────────────────────────────────────────────────────────────────────────
+
 import { NextResponse } from 'next/server';
 import getDb from '@/db/index';
-import { getTaskQueueStatus } from '@/workers/taskQueue';
 import { getSchedulerStatus } from '@/scheduler/autoPublisher';
-
-interface HealthStatus {
-  status: 'healthy' | 'degraded' | 'unhealthy';
-  timestamp: string;
-  uptime: number;
-  checks: Record<string, { status: 'ok' | 'fail'; latencyMs?: number; detail?: string }>;
-}
+import { getGeminiApiKey } from '@/lib/aiProvider';
 
 const SERVER_START = Date.now();
 
 export async function GET() {
-  const checks: HealthStatus['checks'] = {};
+  const checks: Record<string, { status: 'ok' | 'fail'; detail?: string }> = {};
   let overallHealthy = true;
 
-  // Check: Database connectivity
-  const dbStart = Date.now();
+  // Check: Database
   try {
     const db = getDb();
     db.prepare('SELECT 1').get();
-    checks.database = { status: 'ok', latencyMs: Date.now() - dbStart };
+    checks.database = { status: 'ok' };
   } catch (e) {
-    checks.database = {
-      status: 'fail',
-      latencyMs: Date.now() - dbStart,
-      detail: e instanceof Error ? e.message : 'Unknown error',
-    };
+    checks.database = { status: 'fail', detail: e instanceof Error ? e.message : 'Unknown' };
     overallHealthy = false;
   }
 
-  // Check: Task queue
-  try {
-    const tq = getTaskQueueStatus();
-    checks.taskQueue = {
-      status: 'ok',
-      detail: `running=${tq.running}, pending=${tq.taskStats.pending}, failed=${tq.taskStats.failed}`,
-    };
-  } catch {
-    checks.taskQueue = { status: 'fail', detail: 'Task queue unavailable' };
-  }
+  // Check: Gemini API key
+  const geminiKey = getGeminiApiKey();
+  checks.gemini = {
+    status: geminiKey ? 'ok' : 'fail',
+    detail: geminiKey ? 'API key configured' : 'GEMINI_API_KEY not set',
+  };
 
   // Check: Scheduler
   try {
@@ -53,13 +42,11 @@ export async function GET() {
     checks.scheduler = { status: 'fail', detail: 'Scheduler unavailable' };
   }
 
-  const status: HealthStatus['status'] = overallHealthy ? 'healthy' : 'unhealthy';
-  const body: HealthStatus = {
-    status,
+  return NextResponse.json({
+    status: overallHealthy ? 'healthy' : 'degraded',
     timestamp: new Date().toISOString(),
     uptime: Math.floor((Date.now() - SERVER_START) / 1000),
+    geminiConfigured: !!geminiKey,
     checks,
-  };
-
-  return NextResponse.json(body, { status: overallHealthy ? 200 : 503 });
+  });
 }

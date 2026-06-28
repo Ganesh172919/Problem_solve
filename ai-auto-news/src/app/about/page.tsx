@@ -2,58 +2,59 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'About',
-  description: 'Learn about the AI Auto News personalized AI publishing platform.',
+  description: 'Learn about TechPulse AI — the autonomous AI journalism platform.',
 };
 
 export default function AboutPage() {
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
-      <div className="mb-10">
+    <div style={{ maxWidth: 'var(--content-width)', margin: '0 auto', padding: '2rem 1rem' }}>
+      <div style={{ marginBottom: '2.5rem' }}>
         <p className="status-line">Autonomous publishing platform</p>
-        <h1 className="text-3xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
-          About AI Auto News
+        <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '2rem', fontWeight: 700, marginBottom: '1rem' }}>
+          About TechPulse AI
         </h1>
-        <p className="text-lg" style={{ color: 'var(--text-secondary)', lineHeight: '1.7' }}>
-          AI Auto News combines automated publishing with a reader-tuned website. The goal is broad coverage in clear topic blocks, with source visibility and local personalization that does not require an account.
+        <p style={{ fontSize: '1.0625rem', color: 'var(--color-text-secondary)', lineHeight: 1.7 }}>
+          TechPulse AI is a fully autonomous Tech &amp; AI news publishing platform.
+          An AI agent pipeline researches trending topics, generates articles using
+          Google Gemini, validates quality, and publishes content — all without human intervention.
         </p>
       </div>
 
-      <div className="grid gap-5 md:grid-cols-2">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.25rem', marginBottom: '2.5rem' }}>
         {[
           {
-            title: 'Autonomous newsroom',
-            body: 'The publishing pipeline researches topics, generates articles, formats content, and stores posts in SQLite for the public site.',
+            title: '6-Agent Pipeline',
+            body: 'Research → Template Select → Write → Quality Check → Publish. Each step is handled by a specialized AI agent with structured logging.',
           },
           {
-            title: 'Personalized reader',
-            body: 'Topic choices, reading history, dismissed posts, and recent searches stay in browser storage and tune the For You feed.',
+            title: '5 Content Templates',
+            body: 'Breaking news, deep analysis, weekly roundups, product reviews, and research explainers — each with tailored prompts and length targets.',
           },
           {
-            title: 'Visible trust signals',
-            body: 'Article pages show source counts, AI disclosure, tags, reading time, and quality signals so readers know how to treat each post.',
+            title: 'Gemini Model Rotation',
+            body: 'Uses 4 free-tier Gemini models with automatic fallback on rate limits. Response caching prevents duplicate API calls.',
           },
           {
-            title: 'Local-first platform',
-            body: 'The current product runs locally with Next.js, React, TypeScript, and better-sqlite3 while keeping experimental platform APIs isolated.',
+            title: 'Personalized Feed',
+            body: 'An onboarding quiz captures your preferred topics, tone, and frequency. The agent pipeline uses these to tailor content generation.',
           },
         ].map((item) => (
-          <section key={item.title} className="card p-6">
-            <h2 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>{item.title}</h2>
-            <p className="text-sm" style={{ color: 'var(--text-secondary)', lineHeight: '1.7' }}>{item.body}</p>
-          </section>
+          <div key={item.title} className="card" style={{ padding: '1.25rem' }}>
+            <h2 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.0625rem', fontWeight: 700, marginBottom: '0.5rem' }}>{item.title}</h2>
+            <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', lineHeight: 1.6 }}>{item.body}</p>
+          </div>
         ))}
       </div>
 
       <section className="content-section">
         <div className="section-heading">
-          <div>
-            <p>Important note</p>
-            <h2>AI-assisted content</h2>
-          </div>
+          <h2>Important note</h2>
         </div>
-        <div className="card p-6">
-          <p style={{ color: 'var(--text-secondary)', lineHeight: '1.7' }}>
-            AI-generated content can contain errors, stale context, or incomplete sourcing. Use the visible references and trust panel as reading aids, and verify important claims from primary sources.
+        <div className="card" style={{ padding: '1.25rem' }}>
+          <p style={{ color: 'var(--color-text-secondary)', lineHeight: 1.7 }}>
+            AI-generated content can contain errors, stale context, or incomplete sourcing.
+            Each article includes trust signals (source count, AI disclosure, quality score)
+            to help you evaluate credibility. Always verify important claims from primary sources.
           </p>
         </div>
       </section>

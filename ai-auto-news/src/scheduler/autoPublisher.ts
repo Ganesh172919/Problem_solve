@@ -1,8 +1,17 @@
-import { autonomousPublisher } from '@/agents/autonomousPublisher';
-import { APP_CONFIG } from '@/lib/config';
-import { logger } from '@/lib/logger';
+// ─────────────────────────────────────────────────────────────────────────────
+// Background scheduler that triggers content generation cycles at regular intervals.
+// Runs inside the Next.js server process using setInterval.
+//
+// WHY setInterval (not cron or a separate worker process):
+//  - Keeps the setup to zero external dependencies (just Node.js)
+//  - Shares the same SQLite connection pool as the main app
+//  - Next.js instrumentation hooks ensure it starts on server boot
+// ─────────────────────────────────────────────────────────────────────────────
 
-const INTERVAL_MS = APP_CONFIG.schedulerIntervalMs;
+import { runGenerationCycle } from '@/agents/orchestratorAgent';
+import getDb from '@/db/index';
+
+const INTERVAL_MS = parseInt(process.env.SCHEDULER_INTERVAL_MS || '3600000', 10);
 
 interface SchedulerState {
   intervalId: ReturnType<typeof setInterval> | null;
@@ -34,57 +43,75 @@ async function runCycle(): Promise<void> {
 
   // Lock mechanism: skip if already processing
   if (state.isProcessing) {
-    logger.info('[Scheduler] Skipping cycle - previous cycle still running');
+    console.log('[Scheduler] Skipping cycle — previous cycle still running');
     return;
   }
 
   state.isProcessing = true;
 
   try {
-    const result = await autonomousPublisher();
+    // Fetch user preferences for personalized generation
+    let prefs: Record<string, string> | undefined;
+    try {
+      const db = getDb();
+      const row = db.prepare(
+        `SELECT topics, tone, frequency FROM user_preferences ORDER BY created_at DESC LIMIT 1`
+      ).get() as Record<string, string> | undefined;
+      if (row) prefs = row;
+    } catch {
+      // No preferences table yet or empty — use defaults
+    }
+
+    const result = await runGenerationCycle(prefs);
     state.lastRun = new Date().toISOString();
 
     if (result.success) {
-      state.totalGenerated++;
-      logger.info(`[Scheduler] Cycle complete. Total generated: ${state.totalGenerated}`);
+      state.totalGenerated += result.articlesPublished;
+      console.log(`[Scheduler] Cycle complete. Total generated: ${state.totalGenerated}`);
     } else {
-      logger.info(`[Scheduler] Cycle skipped: ${result.message}`);
-
-      // Retry once on failure
-      logger.info('[Scheduler] Retrying once...');
-      const retry = await autonomousPublisher();
-      if (retry.success) {
-        state.totalGenerated++;
-        logger.info(`[Scheduler] Retry succeeded. Total generated: ${state.totalGenerated}`);
-      } else {
-        logger.info(`[Scheduler] Retry also failed: ${retry.message}`);
-      }
+      console.log(`[Scheduler] Cycle failed: ${result.message}`);
     }
   } catch (error) {
-    logger.error('[Scheduler] Unexpected error', error instanceof Error ? error : undefined);
+    console.error('[Scheduler] Unexpected error:', error instanceof Error ? error.message : error);
   } finally {
     state.isProcessing = false;
   }
 }
 
+/**
+ * startScheduler — begins the auto-publishing loop.
+ * Safe to call multiple times — subsequent calls are no-ops if already running.
+ */
 export function startScheduler(): void {
   const state = getState();
 
   if (state.running && state.intervalId) {
-    logger.info('[Scheduler] Already running');
+    console.log('[Scheduler] Already running');
     return;
   }
 
-  logger.info(`[Scheduler] Starting auto-publisher (interval: ${Math.round(INTERVAL_MS / 60000)} minutes)`);
+  console.log(`[Scheduler] Starting auto-publisher (interval: ${Math.round(INTERVAL_MS / 60000)} minutes)`);
   state.running = true;
 
-  // Run first cycle immediately
-  runCycle();
+  // Update DB state
+  try {
+    const db = getDb();
+    db.prepare(`UPDATE scheduler_state SET is_running = 1, interval_ms = ? WHERE id = 1`).run(INTERVAL_MS);
+  } catch {
+    // Non-fatal
+  }
+
+  // Run first cycle after a short delay (let the app finish booting)
+  setTimeout(() => runCycle(), 5_000);
 
   // Then set interval
   state.intervalId = setInterval(runCycle, INTERVAL_MS);
 }
 
+/**
+ * stopScheduler — stops the auto-publishing loop gracefully.
+ * In-progress generation cycles are allowed to complete.
+ */
 export function stopScheduler(): void {
   const state = getState();
 
@@ -93,9 +120,20 @@ export function stopScheduler(): void {
     state.intervalId = null;
   }
   state.running = false;
-  logger.info('[Scheduler] Stopped');
+
+  try {
+    const db = getDb();
+    db.prepare(`UPDATE scheduler_state SET is_running = 0 WHERE id = 1`).run();
+  } catch {
+    // Non-fatal
+  }
+
+  console.log('[Scheduler] Stopped');
 }
 
+/**
+ * getSchedulerStatus — returns current scheduler state for the admin dashboard.
+ */
 export function getSchedulerStatus() {
   const state = getState();
   return {
@@ -105,6 +143,9 @@ export function getSchedulerStatus() {
   };
 }
 
+/**
+ * toggleScheduler — toggles the scheduler on/off. Returns new running state.
+ */
 export function toggleScheduler(): boolean {
   const state = getState();
   if (state.running) {

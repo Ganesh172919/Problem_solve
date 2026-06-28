@@ -1,12 +1,13 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// /api/admin — returns admin dashboard stats (post counts, scheduler status).
+// ─────────────────────────────────────────────────────────────────────────────
+
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import { getPostStats } from '@/db/posts';
 import { getSchedulerStatus } from '@/scheduler/autoPublisher';
-import { getUserStats } from '@/db/users';
-import { getSubscriptionStats } from '@/db/subscriptions';
-import { getTaskQueueStatus } from '@/workers/taskQueue';
-import { getSystemUsageSummary } from '@/db/usage';
-import { logger } from '@/lib/logger';
+import { getModelUsageStats } from '@/lib/geminiService';
+import getDb from '@/db/index';
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,21 +18,28 @@ export async function GET(request: NextRequest) {
 
     const postStats = getPostStats();
     const schedulerStatus = getSchedulerStatus();
-    const userStats = getUserStats();
-    const subscriptionStats = getSubscriptionStats();
-    const taskQueueStatus = getTaskQueueStatus();
-    const usageSummary = getSystemUsageSummary(7);
+    const geminiStats = getModelUsageStats();
+
+    // Get recent agent log counts
+    let recentLogCount = 0;
+    let errorCount = 0;
+    try {
+      const db = getDb();
+      recentLogCount = (db.prepare(
+        `SELECT COUNT(*) as count FROM agent_logs WHERE created_at > datetime('now', '-24 hours')`
+      ).get() as { count: number }).count;
+      errorCount = (db.prepare(
+        `SELECT COUNT(*) as count FROM agent_logs WHERE level = 'ERROR' AND created_at > datetime('now', '-24 hours')`
+      ).get() as { count: number }).count;
+    } catch { /* non-fatal */ }
 
     return NextResponse.json({
       ...postStats,
       scheduler: schedulerStatus,
-      users: userStats,
-      subscriptions: subscriptionStats,
-      taskQueue: taskQueueStatus,
-      usage: usageSummary,
+      gemini: geminiStats,
+      logs: { recentCount: recentLogCount, errorCount },
     });
-  } catch (error) {
-    logger.error('Error getting admin stats', error instanceof Error ? error : undefined);
+  } catch {
     return NextResponse.json({ error: 'Failed to get stats' }, { status: 500 });
   }
 }

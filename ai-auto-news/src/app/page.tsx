@@ -1,8 +1,5 @@
 import PersonalizedHome from '@/components/PersonalizedHome';
 import { getAllPosts, getCategories, getPostStats } from '@/db/posts';
-import { initializeScheduler } from '@/lib/scheduler-init';
-
-initializeScheduler();
 
 export const dynamic = 'force-dynamic';
 

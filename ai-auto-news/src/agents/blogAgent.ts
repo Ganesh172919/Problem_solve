@@ -1,71 +1,29 @@
-import { ResearchResult, BlogContent } from '@/types';
-import { getAiProvider, getGeminiApiKey } from '@/lib/aiProvider';
-import { rateLimitedFetch } from '@/lib/rateLimiter';
-import { logger } from '@/lib/logger';
-import { APP_CONFIG } from '@/lib/config';
-import { mockBlog } from './mockAi';
+// ─────────────────────────────────────────────────────────────────────────────
+// Blog Agent — legacy agent for generating blog content.
+// Uses the centralized GeminiService instead of direct API calls.
+// ─────────────────────────────────────────────────────────────────────────────
 
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+import { ResearchResult, BlogContent } from '@/types';
+import { generateContent } from '@/lib/geminiService';
+import { logger } from '@/lib/logger';
 
 export async function blogAgent(research: ResearchResult): Promise<BlogContent> {
-  const provider = getAiProvider();
-  const apiKey = getGeminiApiKey();
-
-  if (provider === 'mock' || !apiKey) {
-    if (provider === 'gemini' && !apiKey) {
-      logger.warn('[BlogAgent] AI_PROVIDER=gemini but GEMINI_API_KEY is missing. Falling back to mock mode.');
-    }
-    return mockBlog(research);
-  }
+  const prompt = buildBlogPrompt(research);
 
   try {
-    const prompt = buildBlogPrompt(research);
+    const response = await generateContent({
+      systemPrompt: 'You are a professional tech journalist. Return only valid JSON. No markdown, no code blocks.',
+      userPrompt: prompt,
+      expectJson: true,
+      temperature: 0.7,
+      maxOutputTokens: 8192,
+      agentName: 'BlogAgent',
+    });
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), APP_CONFIG.agentTimeouts.blog);
-
-    const response = await rateLimitedFetch(
-      `${GEMINI_API_URL}?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 8192,
-            responseMimeType: 'application/json',
-            thinkingConfig: { thinkingBudget: 0 },
-          },
-        }),
-        signal: controller.signal,
-      },
-      'BlogAgent',
-    );
-
-    clearTimeout(timeout);
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'unknown');
-      throw new Error(`Gemini API error: ${response.status} — ${errorText}`);
-    }
-
-    const data = await response.json();
-
-    // Check if response was truncated due to token limit
-    const finishReason = data.candidates?.[0]?.finishReason;
-    if (finishReason === 'MAX_TOKENS') {
-      logger.warn('[BlogAgent] Response was truncated (MAX_TOKENS). Attempting to repair JSON...');
-    }
-
-    const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-    return parseBlogResponse(content, research);
+    return parseBlogResponse(response.text, research);
   } catch (error) {
     logger.error('Blog agent error', error instanceof Error ? error : undefined);
-    throw error instanceof Error
-      ? error
-      : new Error('Blog agent failed with an unknown error');
+    throw error instanceof Error ? error : new Error('Blog agent failed');
   }
 }
 
@@ -106,50 +64,6 @@ function stripMarkdownFences(text: string): string {
   return text.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
 }
 
-/**
- * Attempts to repair truncated JSON by closing open strings, arrays, and objects.
- */
-function repairTruncatedJson(text: string): string {
-  let repaired = text.trim();
-
-  // Remove trailing comma
-  repaired = repaired.replace(/,\s*$/, '');
-
-  // If the JSON ends with a truncated string value, close the string
-  if ((repaired.match(/"/g) || []).length % 2 !== 0) {
-    repaired += '"';
-  }
-
-  // Count open brackets/braces and close them
-  let openBraces = 0;
-  let openBrackets = 0;
-  let inString = false;
-  let prevChar = '';
-
-  for (const char of repaired) {
-    if (char === '"' && prevChar !== '\\') {
-      inString = !inString;
-    } else if (!inString) {
-      if (char === '{') openBraces++;
-      else if (char === '}') openBraces--;
-      else if (char === '[') openBrackets++;
-      else if (char === ']') openBrackets--;
-    }
-    prevChar = char;
-  }
-
-  // Remove any trailing partial key-value pair
-  repaired = repaired.replace(/,\s*"[^"]*"\s*:\s*"?$/, '');
-  if ((repaired.match(/"/g) || []).length % 2 !== 0) {
-    repaired += '"';
-  }
-
-  for (let i = 0; i < openBrackets; i++) repaired += ']';
-  for (let i = 0; i < openBraces; i++) repaired += '}';
-
-  return repaired;
-}
-
 function parseBlogResponse(content: string, research: ResearchResult): BlogContent {
   const cleaned = stripMarkdownFences(content);
 
@@ -157,52 +71,33 @@ function parseBlogResponse(content: string, research: ResearchResult): BlogConte
   try {
     const parsed = JSON.parse(cleaned);
     return validateBlogContent(parsed);
-  } catch {
-    // continue
-  }
+  } catch { /* continue */ }
 
   // 2. Try to extract JSON object
   const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
   if (jsonMatch) {
     try {
-      const parsed = JSON.parse(jsonMatch[0]);
-      return validateBlogContent(parsed);
-    } catch {
-      // continue
-    }
+      return validateBlogContent(JSON.parse(jsonMatch[0]));
+    } catch { /* continue */ }
   }
 
-  // 3. Try to repair truncated JSON
-  try {
-    const repaired = repairTruncatedJson(cleaned);
-    const parsed = JSON.parse(repaired);
-    logger.warn('[BlogAgent] Successfully repaired truncated JSON response');
-    return validateBlogContent(parsed);
-  } catch {
-    // continue
-  }
-
-  // 4. Extract fields via regex as last resort
+  // 3. Extract fields via regex as last resort
   const titleMatch = cleaned.match(/"title"\s*:\s*"([^"]+)"/);
-  const slugMatch = cleaned.match(/"slug"\s*:\s*"([^"]+)"/);
-  const metaMatch = cleaned.match(/"metaDescription"\s*:\s*"([^"]+)"/);
-  const contentMatch = cleaned.match(/"content"\s*:\s*"([\s\S]*?)(?:"\s*,\s*"|"\s*})/);
   const summaryMatch = cleaned.match(/"summary"\s*:\s*"([^"]+)"/);
 
-  if (titleMatch && (contentMatch || summaryMatch)) {
+  if (titleMatch) {
     logger.warn('[BlogAgent] Extracted partial data from malformed JSON response');
     const title = titleMatch[1];
     return {
       title,
-      slug: slugMatch?.[1] || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
-      metaDescription: (metaMatch?.[1] || '').substring(0, 160),
-      content: contentMatch?.[1] || `<p>${summaryMatch?.[1] || research.summary}</p>`,
+      slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
+      metaDescription: title.slice(0, 160),
+      content: `<p>${summaryMatch?.[1] || research.summary}</p>`,
       summary: summaryMatch?.[1] || research.summary,
       tags: ['technology', 'AI'],
     };
   }
 
-  logger.error('[BlogAgent] Failed to parse response', undefined, { responsePreview: content.substring(0, 500) });
   throw new Error(`Failed to parse Gemini blog response for topic: ${research.topic}`);
 }
 

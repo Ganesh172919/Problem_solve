@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
+import { applyExtendedSchema } from './schema';
 
 let db: Database.Database | null = null;
 
@@ -17,6 +18,9 @@ export function getDb(): Database.Database {
 
   db = new Database(dbPath);
   db.pragma('journal_mode = WAL');
+
+  // Apply extended schema for autonomous pipeline (user_preferences, agent_logs, etc.)
+  applyExtendedSchema(db);
 
   // Create tables
   db.exec(`

@@ -1,235 +1,122 @@
-import { ResearchResult } from '@/types';
-import { rateLimitedFetch, RateLimitError, RateLimitExhaustedError } from '@/lib/rateLimiter';
-import { getAiProvider, getGeminiApiKey } from '@/lib/aiProvider';
-import { logger } from '@/lib/logger';
-import { APP_CONFIG } from '@/lib/config';
-import { mockResearch } from './mockAi';
+// ─────────────────────────────────────────────────────────────────────────────
+// ResearchAgent — queries Gemini to discover trending Tech/AI topics,
+// then filters them against topics already covered in the last 48 hours.
+//
+// WHY 48-hour dedup window (not 7 days):
+//  - Tech news moves fast — yesterday's story may need a follow-up today
+//  - 7 days would make the topic pool too small after the first week
+// ─────────────────────────────────────────────────────────────────────────────
 
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+import { generateContent } from '@/lib/geminiService';
+import { AgentLogger } from '@/lib/agentLogger';
+import getDb from '@/db/index';
 
-const TOPICS = [
-  'latest breakthroughs in artificial intelligence',
-  'new developments in machine learning research',
-  'trending technology startups and innovations',
-  'latest advances in large language models',
-  'new developments in robotics and automation',
-  'cybersecurity threats and solutions trending today',
-  'latest developments in quantum computing',
-  'new breakthroughs in computer vision and image AI',
-  'trending topics in cloud computing and DevOps',
-  'latest news in blockchain and Web3 technology',
-  'advances in natural language processing',
-  'new developments in autonomous vehicles',
-  'trending topics in edge computing and IoT',
-  'latest updates in AI regulation and ethics',
-  'new developments in generative AI applications',
-];
-
-function getRandomTopic(recentTopics: string[]): string {
-  const recentLower = recentTopics.map((t) => t.toLowerCase());
-  const available = TOPICS.filter(
-    (t) => !recentLower.some((r) => r.includes(t.substring(0, 20).toLowerCase()))
-  );
-  const pool = available.length > 0 ? available : TOPICS;
-  return pool[Math.floor(Math.random() * pool.length)];
+export interface TrendingTopic {
+  topic: string;
+  context: string;
+  companies: string[];
+  topicType: string;
+  urgency: number;
 }
 
-export async function researchAgent(
-  recentTopics: string[] = [],
-  requestedTopic?: string,
-): Promise<ResearchResult> {
-  const provider = getAiProvider();
-  const apiKey = getGeminiApiKey();
+const RESEARCH_PROMPT = `You are a senior tech editor. Today is {{date}}.
 
-  if (provider === 'mock' || !apiKey) {
-    if (provider === 'gemini' && !apiKey) {
-      logger.warn('[ResearchAgent] AI_PROVIDER=gemini but GEMINI_API_KEY is missing. Falling back to mock mode.');
-    }
-    return mockResearch(recentTopics, requestedTopic);
-  }
+List the 10 most trending and significant topics in Technology and AI right now.
+For each topic, include:
+- topic: the specific subject (be precise — "OpenAI o3 benchmark controversy" not just "AI")
+- why_trending: 1 sentence on why it's generating discussion
+- companies: key companies involved (array of strings, max 3)
+- topic_type: one of "product_launch" | "research" | "funding" | "controversy" | "analysis" | "regulation"
+- urgency: 1 (evergreen) to 5 (breaking right now)
 
-  const topic = requestedTopic?.trim() || getRandomTopic(recentTopics);
+User's preferred topics: {{preferredTopics}}
 
-  try {
-    const prompt = `You are a research assistant. Research the latest news and developments about: "${topic}".
-
-Return ONLY a valid JSON object with this exact structure (no markdown, no code blocks):
-{
-  "topic": "the main topic",
-  "headline": "a compelling headline about the latest development",
-  "summary": "2-3 sentence summary of the most recent developments",
-  "keyPoints": ["point 1", "point 2", "point 3", "point 4"],
-  "references": ["source or reference 1", "source or reference 2"]
-}
-
-Make sure the content is factual, current, and insightful. Return ONLY the JSON object.`;
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), APP_CONFIG.agentTimeouts.research);
-
-    const response = await rateLimitedFetch(
-      `${GEMINI_API_URL}?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 2048,
-            responseMimeType: 'application/json',
-            thinkingConfig: { thinkingBudget: 0 },
-          },
-        }),
-        signal: controller.signal,
-      },
-      'ResearchAgent',
-    );
-
-    clearTimeout(timeout);
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'unknown');
-      throw new Error(`Gemini API error: ${response.status} — ${errorText}`);
-    }
-
-    const data = await response.json();
-
-    // Check if response was truncated due to token limit
-    const finishReason = data.candidates?.[0]?.finishReason;
-    if (finishReason === 'MAX_TOKENS') {
-      logger.warn('[ResearchAgent] Response was truncated (MAX_TOKENS). Attempting to repair JSON...');
-    }
-
-    const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-    return parseResearchResponse(content, topic);
-  } catch (error) {
-    if (error instanceof RateLimitError || error instanceof RateLimitExhaustedError) {
-      logger.warn(`[ResearchAgent] ${error.message}`);
-      throw error;
-    }
-    logger.error('Research agent error', error instanceof Error ? error : undefined);
-    throw error instanceof Error
-      ? error
-      : new Error('Research agent failed with an unknown error');
-  }
-}
-
-function stripMarkdownFences(text: string): string {
-  // Remove ```json ... ``` or ``` ... ``` wrappers
-  return text.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
-}
+Return ONLY valid JSON: { "topics": [ { "topic": "", "why_trending": "", "companies": [], "topic_type": "", "urgency": 1 } ] }`;
 
 /**
- * Attempts to repair truncated JSON by closing open strings, arrays, and objects.
- * This handles cases where the Gemini API response was cut off mid-JSON due to token limits.
+ * researchAgent — discovers trending Tech/AI topics via Gemini.
+ *
+ * @param runId - Unique ID for this generation run (for log correlation)
+ * @param preferredTopics - User's preferred topics from onboarding quiz
+ * @returns Array of TrendingTopic sorted by urgency (highest first)
+ * @throws {Error} If Gemini returns unparseable JSON after all retries
  */
-function repairTruncatedJson(text: string): string {
-  let repaired = text.trim();
+export async function researchAgent(
+  runId: string,
+  preferredTopics: string[] = [],
+): Promise<TrendingTopic[]> {
+  const log = new AgentLogger(runId, 'ResearchAgent');
+  log.info('Starting topic research', { preferredTopics });
 
-  // Remove trailing comma
-  repaired = repaired.replace(/,\s*$/, '');
+  const prompt = RESEARCH_PROMPT
+    .replace('{{date}}', new Date().toISOString().split('T')[0])
+    .replace('{{preferredTopics}}', JSON.stringify(preferredTopics));
 
-  // If the JSON ends with a truncated string value, close the string
-  // e.g., "headline": "Some text that got cut off
-  if ((repaired.match(/"/g) || []).length % 2 !== 0) {
-    repaired += '"';
-  }
+  const startTime = Date.now();
+  const response = await generateContent({
+    systemPrompt: 'You are a tech editor. Return only valid JSON. No markdown, no code blocks.',
+    userPrompt: prompt,
+    expectJson: true,
+    temperature: 0.3,
+    agentName: 'ResearchAgent',
+  });
+  log.info(`Gemini responded in ${Date.now() - startTime}ms`, { model: response.modelUsed });
 
-  // Count open brackets/braces and close them
-  let openBraces = 0;
-  let openBrackets = 0;
-  let inString = false;
-  let prevChar = '';
-
-  for (const char of repaired) {
-    if (char === '"' && prevChar !== '\\') {
-      inString = !inString;
-    } else if (!inString) {
-      if (char === '{') openBraces++;
-      else if (char === '}') openBraces--;
-      else if (char === '[') openBrackets++;
-      else if (char === ']') openBrackets--;
-    }
-    prevChar = char;
-  }
-
-  // Remove any trailing partial key-value pair (e.g., ending with a colon or key)
-  repaired = repaired.replace(/,\s*"[^"]*"\s*:\s*"?$/, '');
-  // Re-check quote balance after this trim
-  if ((repaired.match(/"/g) || []).length % 2 !== 0) {
-    repaired += '"';
-  }
-
-  // Close open brackets and braces
-  for (let i = 0; i < openBrackets; i++) repaired += ']';
-  for (let i = 0; i < openBraces; i++) repaired += '}';
-
-  return repaired;
-}
-
-function parseResearchResponse(content: string, fallbackTopic: string): ResearchResult {
-  const cleaned = stripMarkdownFences(content);
-
-  // 1. Try parsing directly
+  // Parse response JSON
+  let parsed: { topics: TrendingTopic[] };
   try {
-    const parsed = JSON.parse(cleaned);
-    return validateResearchResult(parsed);
+    // Strip markdown fences if present
+    let cleaned = response.text.trim();
+    cleaned = cleaned.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+    parsed = JSON.parse(cleaned);
   } catch {
-    // continue to fallbacks
+    log.error('Failed to parse Gemini response as JSON', { raw: response.text.slice(0, 300) });
+    return [];
   }
 
-  // 2. Try to extract a complete JSON object from the response
-  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-  if (jsonMatch) {
-    try {
-      const parsed = JSON.parse(jsonMatch[0]);
-      return validateResearchResult(parsed);
-    } catch {
-      // continue to repair
+  if (!parsed.topics || !Array.isArray(parsed.topics)) {
+    log.warn('Response missing topics array', { keys: Object.keys(parsed) });
+    return [];
+  }
+
+  // Filter topics already covered in last 48 hours
+  const db = getDb();
+  const recentTitles = db
+    .prepare(`SELECT title FROM posts WHERE createdAt > datetime('now', '-48 hours')`)
+    .all() as { title: string }[];
+  const recentLower = recentTitles.map((r) => r.title.toLowerCase());
+
+  const freshTopics = parsed.topics.filter((t) => {
+    const words = t.topic.toLowerCase().split(' ').slice(0, 3).join(' ');
+    const alreadyCovered = recentLower.some((title) => title.includes(words));
+    if (alreadyCovered) {
+      log.debug(`Filtered out "${t.topic}" — already covered in last 48h`);
     }
-  }
+    return !alreadyCovered;
+  });
 
-  // 3. Try to repair truncated JSON
+  log.info(`${parsed.topics.length} topics found, ${freshTopics.length} are fresh`);
+
+  // Store fresh topics in trending_topics table
   try {
-    const repaired = repairTruncatedJson(cleaned);
-    const parsed = JSON.parse(repaired);
-    logger.warn('[ResearchAgent] Successfully repaired truncated JSON response');
-    return validateResearchResult(parsed);
+    const insert = db.prepare(`
+      INSERT INTO trending_topics (topic, context, relevance_score, expires_at)
+      VALUES (?, ?, ?, datetime('now', '+24 hours'))
+    `);
+    for (const t of freshTopics) {
+      insert.run(t.topic, t.why_trending, t.urgency / 5.0);
+    }
   } catch {
-    // continue to final fallback
+    // Non-fatal — trending_topics is optional
   }
 
-  // 4. If all else fails, try to extract what we can with regex
-  const topicMatch = cleaned.match(/"topic"\s*:\s*"([^"]+)"/);
-  const headlineMatch = cleaned.match(/"headline"\s*:\s*"([^"]+)"/);
-  const summaryMatch = cleaned.match(/"summary"\s*:\s*"([^"]+)"/);
-
-  if (topicMatch || headlineMatch) {
-    logger.warn('[ResearchAgent] Extracted partial data from malformed JSON response');
-    return {
-      topic: topicMatch?.[1] || fallbackTopic,
-      headline: headlineMatch?.[1] || `Latest developments in ${fallbackTopic}`,
-      summary: summaryMatch?.[1] || '',
-      keyPoints: [],
-      references: [],
-    };
-  }
-
-  logger.error('[ResearchAgent] Failed to parse response', undefined, { responsePreview: content.substring(0, 500) });
-  throw new Error(`Failed to parse Gemini research response for topic: ${fallbackTopic}`);
-}
-
-function validateResearchResult(data: Record<string, unknown>): ResearchResult {
-  if (!data.topic && !data.headline) {
-    throw new Error('Gemini returned an empty research result');
-  }
-  return {
-    topic: String(data.topic || ''),
-    headline: String(data.headline || ''),
-    summary: String(data.summary || ''),
-    keyPoints: Array.isArray(data.keyPoints) ? data.keyPoints.map(String) : [],
-    references: Array.isArray(data.references) ? data.references.map(String) : [],
-  };
+  return freshTopics
+    .sort((a, b) => b.urgency - a.urgency)
+    .map((t) => ({
+      topic: t.topic,
+      context: t.why_trending,
+      companies: t.companies || [],
+      topicType: t.topic_type || 'analysis',
+      urgency: t.urgency || 3,
+    }));
 }

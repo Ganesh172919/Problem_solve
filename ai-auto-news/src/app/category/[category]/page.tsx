@@ -35,41 +35,31 @@ export default async function CategoryPage({
   const meta = getCategoryMeta(category);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-10 animate-fade-in-up">
+    <div style={{ maxWidth: 'var(--max-width)', margin: '0 auto', padding: '2rem 1rem' }}>
+      <div style={{ marginBottom: '2rem' }}>
         <Link
           href="/"
-          className="inline-flex items-center gap-1 text-sm mb-4 transition-colors"
-          style={{ color: 'var(--text-accent)' }}
+          style={{ color: 'var(--color-accent)', fontSize: '0.85rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginBottom: '0.75rem' }}
         >
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Back to all posts
+          ← Back to all articles
         </Link>
-        <div className="flex items-center gap-3 mb-2">
-          <span className="badge" style={{ color: meta.color, background: 'rgba(255,255,255,0.05)' }}>
-            {meta.icon}
-          </span>
-          <h1 className="text-3xl font-bold" style={{ color: meta.color }}>
-            {meta.label}
-          </h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+          <span className={`category-badge category-badge-${category}`}>{meta.icon}</span>
+          <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '2rem', fontWeight: 700 }}>{meta.label}</h1>
         </div>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-          {meta.description}
-        </p>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '4px' }}>
+        <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.95rem' }}>{meta.description}</p>
+        <p style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem', marginTop: '0.25rem' }}>
           {total} {total === 1 ? 'article' : 'articles'}
         </p>
       </div>
 
       {posts.length === 0 ? (
-        <div className="empty-state animate-fade-in">
-          <p>No {meta.label.toLowerCase()} posts yet.</p>
+        <div className="empty-state">
+          <p>No {meta.label.toLowerCase()} articles yet.</p>
           <span>Check back soon. The AI publisher adds new coverage automatically.</span>
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.25rem' }}>
           {posts.map((post, i) => (
             <PostCard key={post.id} post={post} index={i} />
           ))}
