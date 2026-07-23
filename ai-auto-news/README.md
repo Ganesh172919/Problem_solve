@@ -1,176 +1,199 @@
-# AI Auto News — Autonomous AI Publishing Platform
+# AI Auto News — Autonomous AI Publishing Platform (v2.0.0)
 
-🤖 An autonomous AI-powered publishing platform that researches trending topics, generates content, and publishes automatically. Runs fully locally with zero external dependencies.
+🤖 An autonomous, full-stack AI-powered publishing platform that researches trending topics, generates engaging content, formats HTML, and publishes automatically. Built with Next.js 16, React 19, SQLite, Prisma, and Gemini AI. Works 100% locally out-of-the-box with zero external dependencies.
 
 ---
 
-## ✨ Features
+## ✨ Key Features
 
 | Feature | Description |
 |---------|-------------|
-| 🧠 **AI Content Generation** | Automated research → blog/news generation pipeline using Gemini AI |
-| 🔄 **Auto-Publishing** | Background scheduler generates and publishes content on a configurable interval |
-| 🎭 **Mock AI Mode** | Works 100% offline with built-in mock content generation (no API key needed) |
-| 🔍 **Full-Text Search** | FTS5-powered search across all articles with highlighted results |
-| 📂 **Category System** | Filter posts by category (Blog, News, Tech, AI, etc.) |
-| 📥 **Export** | Download articles as JSON or TXT files via `/api/export` |
-| 🛡️ **Admin Dashboard** | Manage posts, trigger generation, toggle scheduler, view stats |
-| 📱 **Responsive Design** | Premium dark-mode UI with glassmorphism, animations, and mobile support |
-| ⚡ **SQLite Storage** | Zero-config local database with WAL mode for fast reads |
-| 🔐 **Security** | XSS sanitization, CSP headers, CSRF protection, rate limiting |
+| 🧠 **AI Content Generation** | Autonomous research $\to$ article generation pipeline using Gemini AI (with mock fallback) |
+| 🔄 **Auto-Publishing Scheduler** | Background scheduler generates and publishes articles on configurable time intervals |
+| 🎭 **Mock AI Mode** | Works 100% offline using built-in mock AI provider — no API keys required |
+| 🔍 **Full-Text Search (FTS5)** | SQLite FTS5-powered instant article search with term highlighting |
+| 📂 **Category System** | Organize & filter posts by categories (Blog, News, Tech, AI, Science, etc.) |
+| 🛡️ **Admin Dashboard** | Manage articles, manually trigger generation, toggle scheduler, and view system metrics |
+| 📥 **Multi-Format Export** | Download articles via `/api/export` in JSON or TXT formats |
+| 📱 **Modern Dark-Mode UI** | Glassmorphism cards, staggered animations, mobile responsiveness, & Google Inter font |
+| 🔑 **Multi-Protocol APIs** | REST endpoints (v1, v2, v3) + GraphQL endpoint at `/api/graphql` |
+| 🛠️ **CLI & Multi-Language SDKs** | Command-line management tool + client SDKs for TypeScript, Python, and Go |
+| 📊 **Observability & Metrics** | OpenTelemetry tracing and Prometheus metrics endpoint (`prom-client`) |
+| 🔐 **Enterprise Security** | XSS sanitization (DOMPurify), CSP headers, CSRF protection, rate limiting, & JWT/OAuth support |
 
 ---
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- **Node.js** 18+ 
-- **npm** 9+
+- **Node.js** 18.x+ 
+- **npm** 9.x+
 
-### Setup
+### Setup & Launch
 
 ```bash
-# 1. Navigate to the project
+# 1. Navigate to project directory
 cd ai-auto-news
 
 # 2. Install dependencies
 npm install
 
-# 3. Create environment config
+# 3. Initialize local environment config
 cp .env.example .env.local
 
-# 4. Start the dev server
+# 4. Start development server
 npm run dev
 ```
 
-Open **http://localhost:3000** in your browser.
+Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 
-> 💡 The app works immediately with `AI_PROVIDER=mock` (default) — no API key needed!
+> 💡 **Offline Ready:** The app defaults to `AI_PROVIDER=mock` so you can test all publishing features immediately without a Gemini API key.
 
 ---
 
-## 🔑 Configuration
+## 🔑 Environment Configuration
 
-Edit `.env.local` to customize:
+Edit `.env.local` to customize settings:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `AI_PROVIDER` | `mock` | Set to `gemini` for real AI generation |
-| `GEMINI_API_KEY` | (empty) | Your Gemini API key (required when `AI_PROVIDER=gemini`) |
-| `ADMIN_USERNAME` | `admin` | Admin panel login username |
-| `ADMIN_PASSWORD` | `admin123` | Admin panel login password |
+| `AI_PROVIDER` | `mock` | Set to `gemini` for real AI content generation |
+| `GEMINI_API_KEY` | *(empty)* | Your Gemini API key (required when `AI_PROVIDER=gemini`) |
+| `ADMIN_USERNAME` | `admin` | Admin dashboard login username |
+| `ADMIN_PASSWORD` | `admin123` | Admin dashboard login password |
 | `SCHEDULER_ENABLED` | `true` | Enable/disable auto-publishing scheduler |
-| `SCHEDULER_INTERVAL_MS` | `7200000` | Auto-publish interval (default: 2 hours) |
+| `SCHEDULER_INTERVAL_MS` | `7200000` | Auto-publish interval in milliseconds (default: 2 hours) |
+| `DATABASE_URL` | `file:./data/blog.db` | SQLite database file location |
+| `REDIS_URL` | *(empty)* | Optional Redis connection URL for BullMQ queues |
 
 ---
 
-## 📖 Usage
+## 📖 Available NPM Scripts
 
-### Web Interface
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start Next.js development server on port 3000 |
+| `npm run build` | Create optimized production build |
+| `npm run start` | Run production server |
+| `npm run test` | Run Jest unit tests |
+| `npm run test:watch` | Run Jest tests in interactive watch mode |
+| `npm run test:coverage` | Run Jest tests with coverage reporting |
+| `npm run smoke` | Run local automated smoke test script |
+| `npm run prisma:generate` | Generate Prisma client code |
+| `npm run prisma:migrate` | Run database migrations in development |
+| `npm run docker:build` | Build application Docker image |
+| `npm run docker:up` | Launch local stack via Docker Compose |
+| `npm run docker:down` | Stop Docker Compose stack |
 
-| Page | URL | Description |
-|------|-----|-------------|
-| **Home** | `/` | Browse all articles with stats and daily headlines |
-| **Category** | `/category/blog` | Filter by category |
-| **Search** | `/search` | Full-text search with highlighted results |
-| **Post** | `/post/[slug]` | Read full article with reading time |
-| **Admin** | `/admin` | Dashboard to manage posts and scheduler |
+---
 
-### API Endpoints
+## 🌐 Web Routes & API Overview
+
+### Web Pages
+- **Home (`/`)**: Latest published articles, featured posts, and statistics banner
+- **Post Detail (`/post/[slug]`)**: Full article reading view with estimated reading time
+- **Category Filter (`/category/[category]`)**: Filter articles by topic category
+- **Search (`/search`)**: Interactive full-text search page with highlighted hits
+- **Admin Dashboard (`/admin`)**: Publishing stats, manual content triggers, and post management
+
+### REST & GraphQL Endpoints
+- `GET /api/posts` — Retrieve paginated articles list
+- `GET /api/search?q={query}` — Full-text search endpoint
+- `GET /api/export?format=json` — Export posts as JSON or TXT
+- `POST /api/generate` — Trigger immediate AI article generation (Admin)
+- `POST /api/scheduler` — Toggle background scheduler state (Admin)
+- `POST /api/graphql` — GraphQL query and mutation interface
+- `GET /api/v1/*` — Stable v1 REST API for API key clients
+
+---
+
+## 🖥️ CLI Tool & SDKs
+
+### Command-Line Tool (`cli/`)
+Manage the platform directly from the terminal:
 
 ```bash
-# List posts
-GET /api/posts?limit=10&page=1
-
-# Search
-GET /api/search?q=artificial+intelligence
-
-# Export as JSON
-GET /api/export?format=json&category=blog&limit=50
-
-# Export as TXT
-GET /api/export?format=txt
-
-# Generate content (admin)
-POST /api/generate
-
-# Toggle scheduler (admin)
-POST /api/scheduler
+# Run CLI tool
+node cli/index.js status
+node cli/index.js generate --category=tech
+node cli/index.js list-posts --limit=5
 ```
+
+### Client SDKs (`sdk/`)
+Client SDKs are available for integration:
+- 🟦 **TypeScript SDK**: `sdk/typescript`
+- 🐍 **Python SDK**: `sdk/python`
+- 🐹 **Go SDK**: `sdk/go`
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ Project Architecture
 
 ```
 ai-auto-news/
 ├── src/
-│   ├── app/              # Next.js App Router pages & API routes
-│   │   ├── api/          # REST API endpoints (26 route groups)
-│   │   ├── admin/        # Admin dashboard
-│   │   ├── search/       # Full-text search page
-│   │   ├── category/     # Category filtering
+│   ├── app/              # Next.js App Router pages, layouts, and API routes
+│   │   ├── api/          # REST & GraphQL API endpoints
+│   │   ├── admin/        # Admin control panel
+│   │   ├── search/       # Full-text search interface
+│   │   ├── category/     # Category-filtered post pages
 │   │   └── post/         # Article detail view
-│   ├── agents/           # AI agent pipeline
-│   │   ├── researchAgent     # Topic research (Gemini or mock)
-│   │   ├── blogAgent         # Blog post generation
-│   │   ├── newsAgent         # News article generation
-│   │   ├── formattingAgent   # HTML formatting & sanitization
-│   │   ├── autonomousPublisher  # End-to-end orchestrator
-│   │   └── mockAi            # Offline mock AI provider
-│   ├── components/       # React components (Header, Footer, PostCard, etc.)
-│   ├── db/               # SQLite database layer (better-sqlite3)
-│   ├── lib/              # Utilities (config, auth, rate limiter, etc.)
-│   ├── scheduler/        # Background auto-publisher
+│   ├── agents/           # Multi-agent AI generation pipeline
+│   │   ├── researchAgent         # Topic research & trend discovery
+│   │   ├── blogAgent             # Long-form blog generator
+│   │   ├── newsAgent             # Breaking news generator
+│   │   ├── formattingAgent       # HTML formatting & DOMPurify sanitization
+│   │   ├── autonomousPublisher   # End-to-end orchestration agent
+│   │   └── mockAi                # Offline mock AI provider
+│   ├── components/       # Reusable UI components (Header, Footer, PostCard, etc.)
+│   ├── db/               # SQLite database client (`better-sqlite3`) & queries
+│   ├── lib/              # Utilities (auth, logger, rate limiter, feature flags)
+│   ├── scheduler/        # Background auto-publisher timer loop
 │   ├── types/            # TypeScript type definitions
-│   └── workers/          # Task queue workers
-├── data/                 # SQLite database files (auto-created)
-├── docs/                 # Documentation
-└── tests/                # Unit tests (Jest)
-```
-
-### Content Pipeline
-
-```
-Research → Generate → Format → Save to SQLite
-   ↑                                    ↓
-   └── Scheduler (runs every 2 hours) ←─┘
+│   └── workers/          # Background task queue & worker handlers
+├── cli/                  # Command line interface tool
+├── data/                 # SQLite database storage directory (`blog.db`)
+├── docs/                 # Detailed documentation hub
+├── sdk/                  # Client SDK libraries (TS, Python, Go)
+└── tests/                # Jest unit & integration test suites
 ```
 
 ---
 
-## 🎨 Design
+## 📚 Documentation Hub
 
-The UI features a **premium dark-mode design** with:
-- 🌙 Deep dark backgrounds with glass-morphism cards
-- 🎨 Purple/blue gradient accents and animated text
-- ✨ Staggered fade-in animations on post grids
-- 📱 Fully responsive with mobile hamburger menu
-- 🔤 Inter font from Google Fonts
-- 🏷️ Color-coded category badges
-- ⏱️ Reading time estimates on all articles
+For detailed guides, refer to the documentation hub in `docs/`:
+
+- 🚀 [Getting Started Guide](docs/getting-started.md)
+- ⚙️ [Configuration Guide](docs/configuration.md)
+- 🏛️ [Architecture Documentation](docs/architecture.md)
+- 🔌 [API Reference](docs/api.md)
+- 🖥️ [CLI Documentation](docs/cli.md)
+- 📦 [SDK Documentation](docs/sdk.md)
+- 🚢 [Deployment Guide](docs/deployment.md)
+- 🔧 [Troubleshooting Guide](docs/troubleshooting.md)
+- 📊 [Platform Overview](PLATFORM_OVERVIEW.md)
+- 📜 [Platform Documentation](PLATFORM_DOCUMENTATION.md)
+- 🎯 [Vision & Roadmap](VISION.md)
 
 ---
 
 ## 🧪 Testing
 
 ```bash
-# Run unit tests
+# Run all unit tests
 npm test
 
 # Run tests in watch mode
 npm run test:watch
 
-# Run with coverage
+# Generate coverage report
 npm run test:coverage
 ```
 
 ---
 
-## 📝 Notes
+## 📝 License
 
-- The app runs fully locally using SQLite — no external database required
-- Data is stored in `data/blog.db` (auto-created on first run)
-- Set `AI_PROVIDER=gemini` and provide `GEMINI_API_KEY` for real AI generation
-- The scheduler generates content automatically — check the admin dashboard for status
-- All content is sanitized against XSS via DOMPurify
+Distributed under the MIT License. See `LICENSE` for details.
+
